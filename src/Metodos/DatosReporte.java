@@ -4,12 +4,15 @@
  */
 package Metodos;
 
+import java.awt.Image;
+
 /**
  *
  * @author gaming
  */
 public class DatosReporte {
-    private String CODIGO_BARRAS;
+    private Image CODIGO_BARRAS;
+    private String CODIGO_BARRAS_TEXTO;
     private String IDENTIFICACION;
     private String DESCRIPCION;
     private String PRECIO_VENTA;
@@ -24,8 +27,9 @@ public class DatosReporte {
         this.INFORMACION = INFORMACION;
     }
 
-    public DatosReporte(String CODIGO_BARRAS, String IDENTIFICACION, String DESCRIPCION, String PRECIO_VENTA, String FECHA,String INFORMACION) {
+    public DatosReporte(Image CODIGO_BARRAS, String CODIGO_BARRAS_TEXTO, String IDENTIFICACION, String DESCRIPCION, String PRECIO_VENTA, String FECHA,String INFORMACION) {
         this.CODIGO_BARRAS = CODIGO_BARRAS;
+        this.CODIGO_BARRAS_TEXTO = CODIGO_BARRAS_TEXTO;
         this.IDENTIFICACION = IDENTIFICACION;
         this.DESCRIPCION = DESCRIPCION;
         this.PRECIO_VENTA = PRECIO_VENTA;
@@ -44,15 +48,23 @@ public class DatosReporte {
     /**
      * @return the CODIGO_BARRAS
      */
-    public String getCODIGO_BARRAS() {
+    public Image getCODIGO_BARRAS() {
         return CODIGO_BARRAS;
     }
 
     /**
      * @param CODIGO_BARRAS the CODIGO_BARRAS to set
      */
-    public void setCODIGO_BARRAS(String CODIGO_BARRAS) {
+    public void setCODIGO_BARRAS(Image CODIGO_BARRAS) {
         this.CODIGO_BARRAS = CODIGO_BARRAS;
+    }
+
+    public String getCODIGO_BARRAS_TEXTO() {
+        return CODIGO_BARRAS_TEXTO;
+    }
+
+    public void setCODIGO_BARRAS_TEXTO(String CODIGO_BARRAS_TEXTO) {
+        this.CODIGO_BARRAS_TEXTO = CODIGO_BARRAS_TEXTO;
     }
 
     /**

@@ -5,6 +5,7 @@ import Metodos.Configuracion;
 import Metodos.DatosReporte;
 import Metodos.PrecioFormatter;
 import static SQL.SQLFechaHora.obtenerFechayHoraActualDelServidor;
+import com.project.barcode.newimpl.BarcodeFacade;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -14,12 +15,19 @@ import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
+import java.io.File;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.imageio.ImageIO;
 import javax.print.PrintService;
 import javax.print.PrintServiceLookup;
 import javax.swing.BorderFactory;
@@ -41,8 +49,10 @@ import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import net.sf.jasperreports.engine.JRDataSource;
 import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import net.sf.jasperreports.engine.export.JRPrintServiceExporter;
 import net.sf.jasperreports.export.SimpleExporterInput;
@@ -50,6 +60,9 @@ import net.sf.jasperreports.export.SimplePrintServiceExporterConfiguration;
 import net.sf.jasperreports.view.JasperViewer;
 
 public class VentanaInicio extends JFrame {
+
+    private static final Logger LOGGER = Logger.getLogger(VentanaInicio.class.getName());
+    private static final BarcodeFacade BARCODE_FACADE = new BarcodeFacade();
 
     public static boolean controlAdministracion;
     public static boolean controlRutas;
@@ -583,20 +596,54 @@ public class VentanaInicio extends JFrame {
         noEncontrado.setText(mensaje);
     }
 
-    private void imprimirEtiqueta() {
-        String rutaReporte = "\\reportes\\EtiquetaPrecio.jasper";
+    private Image crearImagenBarcodeFacade(String codigoOriginal) {
+        byte[] barcodeBytes = BARCODE_FACADE.generateBarcode(codigoOriginal);
+        if (barcodeBytes.length == 0) {
+            return null;
+        }
+
         try {
+            return ImageIO.read(new ByteArrayInputStream(barcodeBytes));
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, "No se pudo leer la imagen PNG del codigo de barras.", ex);
+            return null;
+        }
+    }
+
+    private void imprimirEtiqueta() {
+        String rutaReporte = "\\reportes\\EtiquetaPrecio.jrxml";
+        try {
+            String codigoOriginal = SQL.SQLArticulo.codigo_barras == null
+                    ? ""
+                    : SQL.SQLArticulo.codigo_barras.trim();
+            if (codigoOriginal.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No hay codigo de barras para imprimir.");
+                return;
+            }
+            Image imagenCodigoBarras = crearImagenBarcodeFacade(codigoOriginal);
+            if (imagenCodigoBarras == null) {
+                ToastNotification.showError(this, "No se pudo generar el codigo de barras", 2200);
+                return;
+            }
             String url = System.getProperty("user.dir") + rutaReporte;
+            File archivoReporte = new File(url);
+            if (!archivoReporte.exists()) {
+                JOptionPane.showMessageDialog(this, "No se encontro el reporte: " + archivoReporte.getAbsolutePath());
+                return;
+            }
+
             ArrayList<DatosReporte> parametros = new ArrayList<DatosReporte>();
-            parametros.add(new DatosReporte(SQL.SQLArticulo.codigo_barras,
-                    SQL.SQLArticulo.identificacion,
+            parametros.add(new DatosReporte(imagenCodigoBarras,
+                    codigoOriginal,
+                    codigoOriginal,
                     descripcion.getText(),
                     precio.getText(),
                     obtenerFechayHoraActualDelServidor(),
                     informacion.getText()));
 
             JRDataSource dataSource = new JRBeanCollectionDataSource(parametros);
-            JasperPrint informe = JasperFillManager.fillReport(url, null, dataSource);
+            JasperReport reporte = JasperCompileManager.compileReport(url);
+            JasperPrint informe = JasperFillManager.fillReport(reporte, null, dataSource);
 
             if (Configuracion.ambiente.equalsIgnoreCase("a")) {
                 mostrarVistaPreviaJasper(informe);
@@ -624,7 +671,7 @@ public class VentanaInicio extends JFrame {
                     exportador.setConfiguration(config);
                     exportador.exportReport();
                 } else {
-                    JOptionPane.showMessageDialog(this, "No se encontró la impresora: " + Configuracion.impresora);
+                    JOptionPane.showMessageDialog(this, "No se encontro la impresora: " + Configuracion.impresora);
                 }
             } else {
                 JOptionPane.showMessageDialog(this, "Configurar ambiente: " + Configuracion.ambiente);
@@ -717,4 +764,6 @@ public class VentanaInicio extends JFrame {
             return insets;
         }
     }
+    
+
 }

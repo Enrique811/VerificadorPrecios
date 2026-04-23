@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="EtiquetaPrecio" printOrder="Horizontal" pageWidth="170" pageHeight="85" columnWidth="166" leftMargin="2" rightMargin="2" topMargin="2" bottomMargin="2" uuid="ab375ee4-21c2-46fe-ac58-4bef1266c629">
+	<property name="ireport.zoom" value="2.3579476910000023"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<field name="IDENTIFICACION" class="java.lang.String"/>
+	<field name="CODIGO_BARRAS" class="java.awt.Image"/>
+	<field name="CODIGO_BARRAS_TEXTO" class="java.lang.String"/>
+	<field name="PRECIO_VENTA" class="java.lang.String"/>
+	<field name="DESCRIPCION" class="java.lang.String"/>
+	<field name="FECHA" class="java.lang.String"/>
+	<field name="INFORMACION" class="java.lang.String"/>
+	<title>
+		<band height="81" splitType="Prevent">
+			<textField isStretchWithOverflow="true">
+				<reportElement x="0" y="0" width="166" height="18" uuid="296330ef-a62a-444e-bc18-f61cd27e3478"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{DESCRIPCION}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="0" y="18" width="166" height="9" uuid="865b1519-bcb6-4b78-b194-cb0d07ab1e01"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{INFORMACION}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="27" width="166" height="17" uuid="cf8c54cb-7b19-4db0-8bb3-43ebd8014852"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial Black" size="16" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{PRECIO_VENTA}]]></textFieldExpression>
+			</textField>
+			<image scaleImage="Clip" hAlign="Center" vAlign="Middle">
+				<reportElement x="0" y="44" width="166" height="28" uuid="615e85a7-f8fe-424f-bd9f-017da66c29f1"/>
+				<imageExpression><![CDATA[$F{CODIGO_BARRAS}]]></imageExpression>
+			</image>
+			<textField>
+				<reportElement x="0" y="72" width="166" height="9" uuid="51927c9c-f51c-4e1d-aff6-19d1918cb930"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{CODIGO_BARRAS_TEXTO}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+</jasperReport>

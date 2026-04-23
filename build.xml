@@ -10,6 +10,11 @@
 <project name="VerificadorPrecios" default="default" basedir=".">
     <description>Builds, tests, and runs the project VerificadorPrecios.</description>
     <import file="nbproject/build-impl.xml"/>
+    
+    <target name="-post-compile">
+        <copy file="${basedir}/fonts/fonts.xml" todir="${build.classes.dir}" failonerror="false"/>
+        <copy file="${basedir}/fonts/jasperreports_extension.properties" todir="${build.classes.dir}" failonerror="false"/>
+    </target>
     <!--
 
     There exist several targets which are by default empty and which can be 
