@@ -5,14 +5,18 @@
 package Metodos;
 
 import java.awt.Image;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 
 /**
  *
  * @author gaming
  */
 public class DatosReporte {
-    private Image CODIGO_BARRAS;
+    private byte[] CODIGO_BARRAS;
     private String CODIGO_BARRAS_TEXTO;
+    private boolean IS_CODE128;
     private String IDENTIFICACION;
     private String DESCRIPCION;
     private String PRECIO_VENTA;
@@ -27,9 +31,10 @@ public class DatosReporte {
         this.INFORMACION = INFORMACION;
     }
 
-    public DatosReporte(Image CODIGO_BARRAS, String CODIGO_BARRAS_TEXTO, String IDENTIFICACION, String DESCRIPCION, String PRECIO_VENTA, String FECHA,String INFORMACION) {
+    public DatosReporte(byte[] CODIGO_BARRAS, String CODIGO_BARRAS_TEXTO, boolean IS_CODE128, String IDENTIFICACION, String DESCRIPCION, String PRECIO_VENTA, String FECHA, String INFORMACION) {
         this.CODIGO_BARRAS = CODIGO_BARRAS;
         this.CODIGO_BARRAS_TEXTO = CODIGO_BARRAS_TEXTO;
+        this.IS_CODE128 = IS_CODE128;
         this.IDENTIFICACION = IDENTIFICACION;
         this.DESCRIPCION = DESCRIPCION;
         this.PRECIO_VENTA = PRECIO_VENTA;
@@ -49,14 +54,26 @@ public class DatosReporte {
      * @return the CODIGO_BARRAS
      */
     public Image getCODIGO_BARRAS() {
-        return CODIGO_BARRAS;
+        if (CODIGO_BARRAS == null || CODIGO_BARRAS.length == 0) {
+            return null;
+        }
+
+        try {
+            return ImageIO.read(new ByteArrayInputStream(CODIGO_BARRAS));
+        } catch (IOException ex) {
+            return null;
+        }
     }
 
     /**
      * @param CODIGO_BARRAS the CODIGO_BARRAS to set
      */
-    public void setCODIGO_BARRAS(Image CODIGO_BARRAS) {
+    public void setCODIGO_BARRAS(byte[] CODIGO_BARRAS) {
         this.CODIGO_BARRAS = CODIGO_BARRAS;
+    }
+
+    public byte[] getCODIGO_BARRAS_BYTES() {
+        return CODIGO_BARRAS;
     }
 
     public String getCODIGO_BARRAS_TEXTO() {
@@ -65,6 +82,18 @@ public class DatosReporte {
 
     public void setCODIGO_BARRAS_TEXTO(String CODIGO_BARRAS_TEXTO) {
         this.CODIGO_BARRAS_TEXTO = CODIGO_BARRAS_TEXTO;
+    }
+
+    public boolean isIS_CODE128() {
+        return IS_CODE128;
+    }
+
+    public boolean getIS_CODE128() {
+        return IS_CODE128;
+    }
+
+    public void setIS_CODE128(boolean IS_CODE128) {
+        this.IS_CODE128 = IS_CODE128;
     }
 
     /**

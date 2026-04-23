@@ -22,14 +22,21 @@ public class BarcodeFacade {
     }
 
     public byte[] generateBarcode(String input) {
+        return generateBarcodeResult(input).getImageBytes();
+    }
+
+    public BarcodeResult generateBarcodeResult(String input) {
         if (input == null || input.trim().isEmpty()) {
             LOGGER.warning("BarcodeFacade received null or empty input.");
-            return new byte[0];
+            return new BarcodeResult(new byte[0], BarcodeType.CODE128);
         }
 
+        String trimmedInput = input.trim();
+        BarcodeType barcodeType = barcodeService.detectType(trimmedInput);
+
         try {
-            BarcodeType barcodeType = barcodeService.detectType(input);
-            return barcodeGenerator.generate(input.trim(), barcodeType);
+            byte[] imageBytes = barcodeGenerator.generate(trimmedInput, barcodeType);
+            return new BarcodeResult(imageBytes, barcodeType);
         } catch (IllegalArgumentException ex) {
             LOGGER.log(Level.WARNING, "Invalid barcode input: " + input, ex);
         } catch (WriterException ex) {
@@ -37,6 +44,6 @@ public class BarcodeFacade {
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, "Failed to serialize barcode image for input: " + input, ex);
         }
-        return new byte[0];
+        return new BarcodeResult(new byte[0], barcodeType);
     }
 }

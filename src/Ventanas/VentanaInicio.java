@@ -6,6 +6,7 @@ import Metodos.DatosReporte;
 import Metodos.PrecioFormatter;
 import static SQL.SQLFechaHora.obtenerFechayHoraActualDelServidor;
 import com.project.barcode.newimpl.BarcodeFacade;
+import com.project.barcode.newimpl.BarcodeResult;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -15,19 +16,13 @@ import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Image;
 import java.io.File;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.imageio.ImageIO;
 import javax.print.PrintService;
 import javax.print.PrintServiceLookup;
 import javax.swing.BorderFactory;
@@ -61,7 +56,6 @@ import net.sf.jasperreports.view.JasperViewer;
 
 public class VentanaInicio extends JFrame {
 
-    private static final Logger LOGGER = Logger.getLogger(VentanaInicio.class.getName());
     private static final BarcodeFacade BARCODE_FACADE = new BarcodeFacade();
 
     public static boolean controlAdministracion;
@@ -596,20 +590,6 @@ public class VentanaInicio extends JFrame {
         noEncontrado.setText(mensaje);
     }
 
-    private Image crearImagenBarcodeFacade(String codigoOriginal) {
-        byte[] barcodeBytes = BARCODE_FACADE.generateBarcode(codigoOriginal);
-        if (barcodeBytes.length == 0) {
-            return null;
-        }
-
-        try {
-            return ImageIO.read(new ByteArrayInputStream(barcodeBytes));
-        } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "No se pudo leer la imagen PNG del codigo de barras.", ex);
-            return null;
-        }
-    }
-
     private void imprimirEtiqueta() {
         String rutaReporte = "\\reportes\\EtiquetaPrecio.jrxml";
         try {
@@ -620,8 +600,9 @@ public class VentanaInicio extends JFrame {
                 JOptionPane.showMessageDialog(this, "No hay codigo de barras para imprimir.");
                 return;
             }
-            Image imagenCodigoBarras = crearImagenBarcodeFacade(codigoOriginal);
-            if (imagenCodigoBarras == null) {
+            BarcodeResult barcodeResult = BARCODE_FACADE.generateBarcodeResult(codigoOriginal);
+            byte[] barcodeBytes = barcodeResult.getImageBytes();
+            if (barcodeBytes.length == 0) {
                 ToastNotification.showError(this, "No se pudo generar el codigo de barras", 2200);
                 return;
             }
@@ -633,8 +614,9 @@ public class VentanaInicio extends JFrame {
             }
 
             ArrayList<DatosReporte> parametros = new ArrayList<DatosReporte>();
-            parametros.add(new DatosReporte(imagenCodigoBarras,
+            parametros.add(new DatosReporte(barcodeBytes,
                     codigoOriginal,
+                    barcodeResult.isCode128(),
                     codigoOriginal,
                     descripcion.getText(),
                     precio.getText(),
