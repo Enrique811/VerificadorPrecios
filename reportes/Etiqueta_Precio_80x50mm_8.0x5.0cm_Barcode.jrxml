@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="EtiquetaPrecio" printOrder="Horizontal" pageWidth="198" pageHeight="113" columnWidth="194" leftMargin="2" rightMargin="2" topMargin="2" bottomMargin="2" uuid="ab375ee4-21c2-46fe-ac58-4bef1266c629">
-	<property name="ireport.zoom" value="2.3579476910000023"/>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Etiqueta_Precio_80x50mm_8.0x5.0cm_Barcode" printOrder="Horizontal" pageWidth="227" pageHeight="142" columnWidth="223" leftMargin="2" rightMargin="2" topMargin="2" bottomMargin="2">
+	<property name="ireport.zoom" value="2.3"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<field name="IDENTIFICACION" class="java.lang.String"/>
@@ -11,41 +11,41 @@
 	<field name="FECHA" class="java.lang.String"/>
 	<field name="INFORMACION" class="java.lang.String"/>
 	<title>
-		<band height="79" splitType="Stretch">
+		<band height="99" splitType="Stretch">
 			<textField>
-				<reportElement x="0" y="10" width="194" height="26" uuid="16191401-d9e4-47cd-b0c8-a9e6578f2c5c"/>
+				<reportElement x="0" y="10" width="223" height="26"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial" size="11" isBold="true"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{DESCRIPCION}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="90" y="36" width="100" height="15" uuid="12984f53-b2ee-4849-8f64-59924947d8e6"/>
+				<reportElement x="100" y="36" width="100" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Arial Black" size="10" isBold="true"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{PRECIO_VENTA}]]></textFieldExpression>
 			</textField>
 			<image scaleImage="FillFrame" hAlign="Center" vAlign="Middle">
-				<reportElement x="5" y="51" width="185" height="17" uuid="44e4dd0d-5b44-4b5e-9664-c18d6581a2a7"/>
+				<reportElement x="5" y="51" width="213" height="17"/>
 				<imageExpression><![CDATA[$F{CODIGO_BARRAS}]]></imageExpression>
 			</image>
 			<textField>
-				<reportElement x="5" y="68" width="185" height="10" uuid="443aafff-b578-4d31-b785-41e82ee35ba4"/>
+				<reportElement x="5" y="68" width="213" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Bottom">
 					<font fontName="Arial" size="6" isBold="true"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{CODIGO_BARRAS_TEXTO}]]></textFieldExpression>
 			</textField>
-			<textField pattern="dd/MM/yyyy">
-				<reportElement x="5" y="36" width="85" height="15" uuid="87f7643e-7902-4aac-93bc-144bddd166f2"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
-					<font fontName="Arial Black" size="7" isBold="false"/>
+			<textField>
+				<reportElement x="5" y="36" width="85" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial Black" size="7"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{FECHA}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="5" y="0" width="185" height="10" uuid="79e15bbc-a8b4-4b37-a9fc-8ca153515fcf"/>
+				<reportElement x="5" y="0" width="213" height="10"/>
 				<textElement textAlignment="Center">
 					<font size="6" isBold="true"/>
 				</textElement>

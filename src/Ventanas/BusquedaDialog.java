@@ -30,9 +30,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.JViewport;
 import javax.swing.KeyStroke;
-import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.border.AbstractBorder;
@@ -41,7 +39,7 @@ import javax.swing.table.DefaultTableModel;
 
 public class BusquedaDialog extends JDialog {
 
-    public static final String[] TITULO = {"Código barras", "Descripción", "Precio", "Existencia"};
+    public static final String[] TITULO = {"C\u00f3digo barras", "Descripci\u00f3n", "Precio", "Existencia"};
 
     public static DefaultTableModel modelo = new DefaultTableModel(new Object[][]{}, TITULO) {
         @Override
@@ -94,8 +92,8 @@ public class BusquedaDialog extends JDialog {
     }
 
     private JPanel crearEncabezado() {
-        JPanel contenedor = new JPanel(new GridBagLayout());
-        contenedor.setOpaque(false);
+        RoundedPanel tarjeta = crearTarjetaSeccion();
+        tarjeta.setLayout(new GridBagLayout());
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -105,16 +103,16 @@ public class BusquedaDialog extends JDialog {
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(0, 0, 8, 0);
 
-        JLabel titulo = new JLabel("Búsqueda de productos");
+        JLabel titulo = new JLabel("B\u00fasqueda de productos");
         titulo.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 24));
         titulo.setForeground(COLOR_TITULO);
-        contenedor.add(titulo, gbc);
+        tarjeta.add(titulo, gbc);
 
         gbc.gridy++;
-        etiquetaMostrarFormaDeBusqueda = new JLabel("Descripción");
+        etiquetaMostrarFormaDeBusqueda = new JLabel("Descripci\u00f3n");
         etiquetaMostrarFormaDeBusqueda.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 14));
         etiquetaMostrarFormaDeBusqueda.setForeground(COLOR_TEXTO);
-        contenedor.add(etiquetaMostrarFormaDeBusqueda, gbc);
+        tarjeta.add(etiquetaMostrarFormaDeBusqueda, gbc);
 
         gbc.gridy++;
         gbc.insets = new Insets(0, 0, 0, 0);
@@ -124,12 +122,12 @@ public class BusquedaDialog extends JDialog {
         Nombre.setBorder(BorderFactory.createCompoundBorder(
                 new RoundedBorder(COLOR_BORDE, 18),
                 new EmptyBorder(14, 16, 14, 16)));
-        contenedor.add(Nombre, gbc);
+        tarjeta.add(Nombre, gbc);
 
-        return contenedor;
+        return tarjeta;
     }
 
-    private JScrollPane crearTabla() {
+    private JComponent crearTabla() {
         listaArticulos = new JTable(modelo);
         listaArticulos.setDefaultRenderer(Object.class, new Metodos.FormatoTablaBArt());
         listaArticulos.setRowHeight(34);
@@ -141,21 +139,33 @@ public class BusquedaDialog extends JDialog {
         listaArticulos.getTableHeader().setReorderingAllowed(false);
 
         JScrollPane scroll = new JScrollPane(listaArticulos);
-        scroll.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedBorder(COLOR_BORDE, 18),
-                BorderFactory.createEmptyBorder()));
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
         scroll.getViewport().setBackground(Color.WHITE);
-        return scroll;
+
+        RoundedPanel tarjeta = crearTarjetaSeccion();
+        tarjeta.setLayout(new BorderLayout());
+        tarjeta.add(scroll, BorderLayout.CENTER);
+        return tarjeta;
     }
 
     private JPanel crearPie() {
-        JPanel pie = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        pie.setOpaque(false);
+        RoundedPanel tarjeta = crearTarjetaSeccion();
+        tarjeta.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 0));
 
-        pie.add(crearEtiquetaAyuda("ESC", "Cerrar"));
-        pie.add(crearEtiquetaAyuda("ENTER", "Seleccionar"));
-        pie.add(crearEtiquetaAyuda("↑ ↓ ", "Moverse"));
-        return pie;
+        tarjeta.add(crearEtiquetaAyuda("ESC", "Cerrar"));
+        tarjeta.add(crearEtiquetaAyuda("ENTER", "Seleccionar"));
+        tarjeta.add(crearEtiquetaAyuda("\u2191 \u2193 ", "Moverse"));
+        return tarjeta;
+    }
+
+    private RoundedPanel crearTarjetaSeccion() {
+        RoundedPanel tarjeta = new RoundedPanel(24, Color.WHITE);
+        tarjeta.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedBorder(COLOR_BORDE, 24),
+                new EmptyBorder(18, 18, 18, 18)));
+        return tarjeta;
     }
 
     private JPanel crearEtiquetaAyuda(String atajo, String texto) {
