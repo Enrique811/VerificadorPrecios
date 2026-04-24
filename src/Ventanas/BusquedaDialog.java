@@ -154,7 +154,7 @@ public class BusquedaDialog extends JDialog {
 
         pie.add(crearEtiquetaAyuda("ESC", "Cerrar"));
         pie.add(crearEtiquetaAyuda("ENTER", "Seleccionar"));
-        pie.add(crearEtiquetaAyuda("↑ ↓", "Moverse"));
+        pie.add(crearEtiquetaAyuda("↑ ↓ ", "Moverse"));
         return pie;
     }
 

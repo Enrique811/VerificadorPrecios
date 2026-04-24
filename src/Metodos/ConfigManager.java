@@ -3,8 +3,9 @@ package Metodos;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 public final class ConfigManager {
@@ -16,9 +17,9 @@ public final class ConfigManager {
 
     public static Properties loadProperties() throws IOException {
         Properties properties = new Properties();
-        InputStream input = null;
+        InputStreamReader input = null;
         try {
-            input = new FileInputStream(CONFIG_PATH);
+            input = new InputStreamReader(new FileInputStream(CONFIG_PATH), StandardCharsets.UTF_8);
             properties.load(input);
             return properties;
         } finally {
@@ -43,9 +44,9 @@ public final class ConfigManager {
             current.setProperty("rutaEmpresa", "");
         }
 
-        OutputStream output = null;
+        OutputStreamWriter output = null;
         try {
-            output = new FileOutputStream(CONFIG_PATH);
+            output = new OutputStreamWriter(new FileOutputStream(CONFIG_PATH), StandardCharsets.UTF_8);
             current.store(output, null);
         } finally {
             if (output != null) {

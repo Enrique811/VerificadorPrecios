@@ -23,9 +23,10 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import javax.swing.JOptionPane;
 
@@ -45,9 +46,9 @@ public class Configuracion {
 
     public static void leerArchivoDePropiedades() {
         Properties propiedades = new Properties();
-        InputStream entrada;
+        InputStreamReader entrada;
         try {
-            entrada = new FileInputStream(url);
+            entrada = new InputStreamReader(new FileInputStream(url), StandardCharsets.UTF_8);
             propiedades.load(entrada);
             ipEmpresa = propiedades.getProperty("ipEmpresa");
             rutaEmpresa = propiedades.getProperty("rutaEmpresa");
@@ -79,7 +80,7 @@ public class Configuracion {
     public static void guardarInformacionEnArchivo(String valor) {
         Properties propiedades = new Properties();
 
-        try (InputStream entrada = new FileInputStream(url)) {
+        try (InputStreamReader entrada = new InputStreamReader(new FileInputStream(url), StandardCharsets.UTF_8)) {
             propiedades.load(entrada);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Error al leer el archivo: " + e, "Error", JOptionPane.ERROR_MESSAGE);
@@ -88,7 +89,7 @@ public class Configuracion {
 
         propiedades.setProperty("informacion", valor);
 
-        try (OutputStream salida = new FileOutputStream(url)) {
+        try (OutputStreamWriter salida = new OutputStreamWriter(new FileOutputStream(url), StandardCharsets.UTF_8)) {
             propiedades.store(salida, null);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Error al guardar en el archivo: " + e, "Error", JOptionPane.ERROR_MESSAGE);

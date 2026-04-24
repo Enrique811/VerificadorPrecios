@@ -21,6 +21,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.RenderingHints;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import javax.print.PrintService;
@@ -35,9 +37,11 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.border.AbstractBorder;
@@ -55,6 +59,8 @@ import net.sf.jasperreports.view.JasperViewer;
 public class VentanaInicio extends JFrame {
 
     private static final BarcodeFacade BARCODE_FACADE = new BarcodeFacade();
+    private static final int BREAKPOINT_COMPACTO = 980;
+    private static final int ANCHO_MINIMO_PANEL_DERECHO = 300;
 
     public static boolean controlAdministracion;
     public static boolean controlRutas;
@@ -87,6 +93,14 @@ public class VentanaInicio extends JFrame {
     private JButton botonBuscar;
     private JButton botonImprimir;
     private JButton botonConfiguracion;
+    private JPanel hostContenidoPrincipal;
+    private JPanel contenidoPrincipal;
+    private JPanel columnaIzquierda;
+    private JPanel tarjetaCaptura;
+    private JPanel tarjetaDetalle;
+    private JPanel tarjetaPrecio;
+    private JScrollPane scrollCompacto;
+    private boolean modoCompacto;
 
     public VentanaInicio() {
         initComponents();
@@ -120,7 +134,7 @@ public class VentanaInicio extends JFrame {
 
         gbc.gridy = 1;
         gbc.weighty = 1;
-        contenedor.add(crearContenidoPrincipal(), gbc);
+        contenedor.add(crearHostContenidoPrincipal(), gbc);
 
         gbc.gridy = 2;
         gbc.weighty = 0;
@@ -128,8 +142,15 @@ public class VentanaInicio extends JFrame {
         contenedor.add(crearFooter(), gbc);
 
         setContentPane(contenedor);
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                actualizarLayoutResponsive();
+            }
+        });
 
         pack();
+        actualizarLayoutResponsive();
     }
 
     private JPanel crearHeader() {
@@ -171,44 +192,29 @@ public class VentanaInicio extends JFrame {
         return header;
     }
 
-    private JPanel crearContenidoPrincipal() {
-        JPanel contenido = new JPanel(new GridBagLayout());
-        contenido.setOpaque(false);
+    private JComponent crearHostContenidoPrincipal() {
+        hostContenidoPrincipal = new JPanel(new BorderLayout());
+        hostContenidoPrincipal.setOpaque(false);
 
-        JPanel columnaIzquierda = new JPanel();
+        contenidoPrincipal = new JPanel(new GridBagLayout());
+        contenidoPrincipal.setOpaque(false);
+
+        columnaIzquierda = new JPanel(new GridBagLayout());
         columnaIzquierda.setOpaque(false);
-        columnaIzquierda.setLayout(new GridBagLayout());
 
-        GridBagConstraints gbcIzquierda = new GridBagConstraints();
-        gbcIzquierda.gridx = 0;
-        gbcIzquierda.weightx = 1;
-        gbcIzquierda.fill = GridBagConstraints.BOTH;
+        tarjetaCaptura = crearTarjetaCaptura();
+        tarjetaDetalle = crearTarjetaDetalle();
+        tarjetaPrecio = crearTarjetaPrecio();
 
-        gbcIzquierda.gridy = 0;
-        gbcIzquierda.weighty = 0;
-        gbcIzquierda.insets = new Insets(0, 0, 18, 0);
-        columnaIzquierda.add(crearTarjetaCaptura(), gbcIzquierda);
+        scrollCompacto = new JScrollPane();
+        scrollCompacto.setBorder(BorderFactory.createEmptyBorder());
+        scrollCompacto.setOpaque(false);
+        scrollCompacto.getViewport().setOpaque(false);
+        scrollCompacto.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollCompacto.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollCompacto.getVerticalScrollBar().setUnitIncrement(16);
 
-        gbcIzquierda.gridy = 1;
-        gbcIzquierda.weighty = 1;
-        gbcIzquierda.insets = new Insets(0, 0, 0, 0);
-        columnaIzquierda.add(crearTarjetaDetalle(), gbcIzquierda);
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridy = 0;
-        gbc.fill = GridBagConstraints.BOTH;
-        gbc.weighty = 1;
-
-        gbc.gridx = 0;
-        gbc.weightx = 1;
-        gbc.insets = new Insets(0, 0, 0, 0);
-        contenido.add(columnaIzquierda, gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 0.36;
-        gbc.insets = new Insets(0, 20, 0, 0);
-        contenido.add(crearTarjetaPrecio(), gbc);
-        return contenido;
+        return hostContenidoPrincipal;
     }
 
     private JPanel crearTarjetaCaptura() {
@@ -274,7 +280,8 @@ public class VentanaInicio extends JFrame {
     private JPanel crearTarjetaPrecio() {
         RoundedPanel tarjeta = crearTarjetaBase();
         tarjeta.setLayout(new GridBagLayout());
-        tarjeta.setPreferredSize(new Dimension(300, 0));
+        tarjeta.setPreferredSize(new Dimension(ANCHO_MINIMO_PANEL_DERECHO, 0));
+        tarjeta.setMinimumSize(new Dimension(ANCHO_MINIMO_PANEL_DERECHO, 0));
 
         JLabel etiquetaPrecio = crearEtiquetaSeccion("Precio final");
 
@@ -335,6 +342,92 @@ public class VentanaInicio extends JFrame {
         return tarjeta;
     }
 
+    private void actualizarLayoutResponsive() {
+        if (hostContenidoPrincipal == null || contenidoPrincipal == null || columnaIzquierda == null) {
+            return;
+        }
+
+        boolean compacto = getWidth() < BREAKPOINT_COMPACTO;
+        if (modoCompacto == compacto && hostContenidoPrincipal.getComponentCount() > 0) {
+            return;
+        }
+        modoCompacto = compacto;
+
+        hostContenidoPrincipal.removeAll();
+        contenidoPrincipal.removeAll();
+        columnaIzquierda.removeAll();
+
+        GridBagConstraints gbcIzquierda = new GridBagConstraints();
+        gbcIzquierda.gridx = 0;
+        gbcIzquierda.weightx = 1;
+        gbcIzquierda.fill = GridBagConstraints.BOTH;
+
+        gbcIzquierda.gridy = 0;
+        gbcIzquierda.weighty = 0;
+        gbcIzquierda.insets = new Insets(0, 0, 18, 0);
+        columnaIzquierda.add(tarjetaCaptura, gbcIzquierda);
+
+        gbcIzquierda.gridy = 1;
+        gbcIzquierda.weighty = 1;
+        gbcIzquierda.insets = new Insets(0, 0, 0, 0);
+        columnaIzquierda.add(tarjetaDetalle, gbcIzquierda);
+
+        if (compacto) {
+            JPanel contenidoVertical = new JPanel(new GridBagLayout());
+            contenidoVertical.setOpaque(false);
+
+            GridBagConstraints gbcCompacto = new GridBagConstraints();
+            gbcCompacto.gridx = 0;
+            gbcCompacto.weightx = 1;
+            gbcCompacto.fill = GridBagConstraints.BOTH;
+            gbcCompacto.anchor = GridBagConstraints.NORTHWEST;
+
+            gbcCompacto.gridy = 0;
+            gbcCompacto.weighty = 0;
+            gbcCompacto.insets = new Insets(0, 0, 18, 0);
+            contenidoVertical.add(columnaIzquierda, gbcCompacto);
+
+            gbcCompacto.gridy = 1;
+            gbcCompacto.weighty = 0;
+            gbcCompacto.insets = new Insets(0, 0, 0, 0);
+            contenidoVertical.add(tarjetaPrecio, gbcCompacto);
+
+            GridBagConstraints gbcRelleno = new GridBagConstraints();
+            gbcRelleno.gridx = 0;
+            gbcRelleno.gridy = 2;
+            gbcRelleno.weightx = 1;
+            gbcRelleno.weighty = 1;
+            gbcRelleno.fill = GridBagConstraints.BOTH;
+            JPanel relleno = new JPanel();
+            relleno.setOpaque(false);
+            contenidoVertical.add(relleno, gbcRelleno);
+
+            scrollCompacto.setViewportView(contenidoVertical);
+            hostContenidoPrincipal.add(scrollCompacto, BorderLayout.CENTER);
+        } else {
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridy = 0;
+            gbc.fill = GridBagConstraints.BOTH;
+            gbc.weighty = 1;
+
+            gbc.gridx = 0;
+            gbc.weightx = 1;
+            gbc.insets = new Insets(0, 0, 0, 0);
+            contenidoPrincipal.add(columnaIzquierda, gbc);
+
+            gbc.gridx = 1;
+            gbc.weightx = 0.36;
+            gbc.weighty = 1;
+            gbc.insets = new Insets(0, 20, 0, 0);
+            contenidoPrincipal.add(tarjetaPrecio, gbc);
+
+            hostContenidoPrincipal.add(contenidoPrincipal, BorderLayout.CENTER);
+        }
+
+        hostContenidoPrincipal.revalidate();
+        hostContenidoPrincipal.repaint();
+    }
+
     private JPanel crearFooter() {
         RoundedPanel footer = crearTarjetaBase();
         footer.setLayout(new GridBagLayout());
@@ -359,7 +452,7 @@ public class VentanaInicio extends JFrame {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridy = 0;
-        gbc.fill = GridBagConstraints.BOTH;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weighty = 1;
 
         gbc.gridx = 0;
