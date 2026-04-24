@@ -38,6 +38,7 @@ public class Configuracion {
     public static String impresora;
     public static String ambiente;
     public static String formatoPrecio;
+    public static String reporte;
      
     private static String url = System.getProperty("user.dir") + "/configuracion.properties";
     public static String key = "Artemisa";
@@ -55,6 +56,7 @@ public class Configuracion {
             impresora = propiedades.getProperty("impresora");
             ambiente = propiedades.getProperty("ambiente");
             formatoPrecio = propiedades.getProperty("formatoPrecio", "CO");
+            reporte = ReporteManager.resolverReporteConfigurado(propiedades.getProperty("reporte", ""));
 
             System.out.println("IP EMPRESA: " + ipEmpresa);
             System.out.println("RUTA EMPRESA: " + rutaEmpresa);
@@ -63,6 +65,7 @@ public class Configuracion {
             System.out.println("IMPRESORA: " + impresora);
             System.out.println("AMBIENTE: " + ambiente);//a=QA, b=PRODUCTIVO
             System.out.println("FORMATO PRECIO: " + formatoPrecio);
+            System.out.println("REPORTE: " + reporte);
 
         } catch (FileNotFoundException e) {
             JOptionPane.showMessageDialog(null, "No se ha encontrado el archivo de configuración" + e, "FileNotFoundException", JOptionPane.ERROR_MESSAGE);

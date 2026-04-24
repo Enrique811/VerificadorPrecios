@@ -3,6 +3,7 @@ package Ventanas;
 import Metodos.ConfigManager;
 import Metodos.Configuracion;
 import Metodos.PrinterUtils;
+import Metodos.ReporteManager;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -51,6 +52,7 @@ public class ConfiguracionWindow extends JDialog {
     private JComboBox<String> comboImpresora;
     private JTextField campoInformacion;
     private JTextField campoIpEmpresa;
+    private JComboBox<String> comboReporte;
 
     private final VentanaInicio ownerFrame;
 
@@ -62,7 +64,7 @@ public class ConfiguracionWindow extends JDialog {
     }
 
     private void initComponents() {
-        setTitle("Configuración del sistema");
+        setTitle("ConfiguraciÃ³n del sistema");
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setMinimumSize(new Dimension(560, 520));
 
@@ -86,7 +88,7 @@ public class ConfiguracionWindow extends JDialog {
         RoundedPanel header = crearTarjeta();
         header.setLayout(new BorderLayout());
 
-        JLabel titulo = new JLabel("Configuración");
+        JLabel titulo = new JLabel("ConfiguraciÃ³n");
         titulo.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 28));
         titulo.setForeground(COLOR_TITULO);
 
@@ -120,7 +122,7 @@ public class ConfiguracionWindow extends JDialog {
 
         comboAmbiente = new JComboBox<ItemAmbiente>(new ItemAmbiente[]{
             new ItemAmbiente("a", "Pruebas"),
-            new ItemAmbiente("b", "Producción")
+            new ItemAmbiente("b", "ProducciÃ³n")
         });
         tarjeta.add(crearCampoFormulario("Ambiente", comboAmbiente), gbc);
 
@@ -146,7 +148,16 @@ public class ConfiguracionWindow extends JDialog {
 
         gbc.gridy++;
         campoInformacion = crearTextField();
-        tarjeta.add(crearCampoFormulario("Información", campoInformacion), gbc);
+        tarjeta.add(crearCampoFormulario("InformaciÃ³n", campoInformacion), gbc);
+
+        gbc.gridy++;
+        comboReporte = new JComboBox<String>();
+        comboReporte.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        comboReporte.setBackground(Color.WHITE);
+        comboReporte.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedBorder(COLOR_BORDE, 18),
+                new EmptyBorder(10, 12, 10, 12)));
+        tarjeta.add(crearCampoFormulario("Reporte", comboReporte), gbc);
 
         gbc.gridy++;
         gbc.insets = new Insets(0, 0, 0, 0);
@@ -230,10 +241,11 @@ public class ConfiguracionWindow extends JDialog {
             campoInformacion.setText(properties.getProperty("informacion", ""));
             campoIpEmpresa.setText(properties.getProperty("ipEmpresa", ""));
             cargarImpresoras(properties.getProperty("impresora", ""));
+            cargarReportes(properties.getProperty("reporte", ""));
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this,
-                    "No se pudo leer el archivo de configuración.\n" + ex.getMessage(),
-                    "Configuración",
+                    "No se pudo leer el archivo de configuraciÃ³n.\n" + ex.getMessage(),
+                    "ConfiguraciÃ³n",
                     JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -266,6 +278,22 @@ public class ConfiguracionWindow extends JDialog {
         }
     }
 
+    private void cargarReportes(String reporteSeleccionado) {
+        comboReporte.removeAllItems();
+        List<String> reportes = ReporteManager.listarReportesDisponibles();
+        if (reportes.isEmpty()) {
+            comboReporte.addItem("Sin reportes detectados");
+            comboReporte.setEnabled(false);
+            return;
+        }
+
+        comboReporte.setEnabled(true);
+        for (String reporte : reportes) {
+            comboReporte.addItem(reporte);
+        }
+        comboReporte.setSelectedItem(ReporteManager.resolverReporteConfigurado(reporteSeleccionado));
+    }
+
     private void seleccionarAmbiente(String ambiente) {
         for (int i = 0; i < comboAmbiente.getItemCount(); i++) {
             ItemAmbiente item = comboAmbiente.getItemAt(i);
@@ -295,13 +323,13 @@ public class ConfiguracionWindow extends JDialog {
 
         if (clave.isEmpty()) {
             campoClave.requestFocusInWindow();
-            ToastNotification.showWarning(this, "La clave no puede estar vacía", 2000);
+            ToastNotification.showWarning(this, "La clave no puede estar vacÃ­a", 2000);
             return;
         }
 
         if (ipEmpresa.isEmpty()) {
             campoIpEmpresa.requestFocusInWindow();
-            ToastNotification.showWarning(this, "La IP Empresa no puede estar vacía", 2000);
+            ToastNotification.showWarning(this, "La IP Empresa no puede estar vacÃ­a", 2000);
             return;
         }
 
@@ -311,6 +339,9 @@ public class ConfiguracionWindow extends JDialog {
             String impresora = comboImpresora.isEnabled() && comboImpresora.getSelectedItem() != null
                     ? comboImpresora.getSelectedItem().toString()
                     : "";
+            String reporte = comboReporte.isEnabled() && comboReporte.getSelectedItem() != null
+                    ? comboReporte.getSelectedItem().toString()
+                    : "";
 
             ConfigManager.saveConfiguration(
                     ambienteSeleccionado != null ? ambienteSeleccionado.codigo : "a",
@@ -318,19 +349,20 @@ public class ConfiguracionWindow extends JDialog {
                     impresora,
                     informacion,
                     ipEmpresa,
-                    formatoSeleccionado != null ? formatoSeleccionado.codigo : "CO");
+                    formatoSeleccionado != null ? formatoSeleccionado.codigo : "CO",
+                    reporte);
 
             Configuracion.leerArchivoDePropiedades();
             if (ownerFrame != null) {
                 ownerFrame.aplicarConfiguracionActual();
             }
 
-            ToastNotification.showSuccess(this, "Configuración guardada correctamente", 2000);
+            ToastNotification.showSuccess(this, "ConfiguraciÃ³n guardada correctamente", 2000);
             dispose();
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this,
-                    "No se pudo guardar la configuración.\n" + ex.getMessage(),
-                    "Configuración",
+                    "No se pudo guardar la configuraciÃ³n.\n" + ex.getMessage(),
+                    "ConfiguraciÃ³n",
                     JOptionPane.ERROR_MESSAGE);
         }
     }

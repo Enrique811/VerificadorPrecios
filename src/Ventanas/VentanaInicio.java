@@ -4,6 +4,7 @@ import Conexion.Conexion;
 import Metodos.Configuracion;
 import Metodos.DatosReporte;
 import Metodos.PrecioFormatter;
+import Metodos.ReporteManager;
 import static SQL.SQLFechaHora.obtenerFechayHoraActualDelServidor;
 import com.project.barcode.newimpl.BarcodeFacade;
 import com.project.barcode.newimpl.BarcodeResult;
@@ -16,7 +17,6 @@ import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.io.File;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -44,10 +44,8 @@ import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import net.sf.jasperreports.engine.JRDataSource;
 import net.sf.jasperreports.engine.JRException;
-import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
-import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import net.sf.jasperreports.engine.export.JRPrintServiceExporter;
 import net.sf.jasperreports.export.SimpleExporterInput;
@@ -591,7 +589,6 @@ public class VentanaInicio extends JFrame {
     }
 
     private void imprimirEtiqueta() {
-        String rutaReporte = "\\reportes\\EtiquetaPrecio.jrxml";
         try {
             String codigoOriginal = SQL.SQLArticulo.codigo_barras == null
                     ? ""
@@ -606,10 +603,10 @@ public class VentanaInicio extends JFrame {
                 ToastNotification.showError(this, "No se pudo generar el codigo de barras", 2200);
                 return;
             }
-            String url = System.getProperty("user.dir") + rutaReporte;
-            File archivoReporte = new File(url);
-            if (!archivoReporte.exists()) {
-                JOptionPane.showMessageDialog(this, "No se encontro el reporte: " + archivoReporte.getAbsolutePath());
+            String reporteSeleccionado = ReporteManager.resolverReporteConfigurado(Configuracion.reporte);
+            String rutaReporte = ReporteManager.obtenerRutaReporteSeleccionado(reporteSeleccionado);
+            if (rutaReporte == null) {
+                JOptionPane.showMessageDialog(this, "No se encontro un reporte .jasper valido en /reportes.");
                 return;
             }
 
@@ -624,8 +621,7 @@ public class VentanaInicio extends JFrame {
                     informacion.getText()));
 
             JRDataSource dataSource = new JRBeanCollectionDataSource(parametros);
-            JasperReport reporte = JasperCompileManager.compileReport(url);
-            JasperPrint informe = JasperFillManager.fillReport(reporte, null, dataSource);
+            JasperPrint informe = JasperFillManager.fillReport(rutaReporte, null, dataSource);
 
             if (Configuracion.ambiente.equalsIgnoreCase("a")) {
                 mostrarVistaPreviaJasper(informe);

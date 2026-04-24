@@ -29,7 +29,7 @@ public final class ConfigManager {
     }
 
     public static void saveConfiguration(String ambiente, String clave, String impresora,
-            String informacion, String ipEmpresa, String formatoPrecio) throws IOException {
+            String informacion, String ipEmpresa, String formatoPrecio, String reporte) throws IOException {
         Properties current = loadProperties();
         current.setProperty("ambiente", ambiente);
         current.setProperty("clave", clave);
@@ -37,6 +37,7 @@ public final class ConfigManager {
         current.setProperty("informacion", informacion);
         current.setProperty("ipEmpresa", ipEmpresa);
         current.setProperty("formatoPrecio", formatoPrecio);
+        current.setProperty("reporte", reporte);
 
         if (!current.containsKey("rutaEmpresa")) {
             current.setProperty("rutaEmpresa", "");
