@@ -6,9 +6,7 @@ echo Generador INSTALADOR EXE (Java 21 + WiX)
 echo ==========================================
 echo.
 
-REM ==========================================
-REM MOVERSE A LA CARPETA DEL SCRIPT
-REM ==========================================
+REM Moverse a la carpeta del script
 cd /d "%~dp0"
 
 echo Carpeta de trabajo:
@@ -19,27 +17,29 @@ REM ==========================================
 REM VALIDACIONES OBLIGATORIAS
 REM ==========================================
 
-REM JAR principal
 if not exist "VerificadorPrecios.jar" (
     echo ERROR: No se encontro VerificadorPrecios.jar
     goto :error
 )
 
-REM Librerias
 if not exist "lib" (
     echo ERROR: No se encontro la carpeta lib
     goto :error
 )
 
-REM Reportes Jasper
 if not exist "reportes" (
     echo ERROR: No se encontro la carpeta reportes
     goto :error
 )
 
-REM Configuracion externa
 if not exist "configuracion.properties" (
     echo ERROR: No se encontro configuracion.properties
+    goto :error
+)
+
+REM Validar icono
+if not exist "logo.ico" (
+    echo ERROR: No se encontro logo.ico
     goto :error
 )
 
@@ -59,7 +59,7 @@ if not exist "%JDK_PATH%\jpackage.exe" (
 )
 
 REM ==========================================
-REM LIMPIAR RUNTIME ANTERIOR
+REM LIMPIAR RUNTIME
 REM ==========================================
 if exist "runtime" (
     echo Eliminando runtime anterior...
@@ -67,14 +67,14 @@ if exist "runtime" (
 )
 
 REM ==========================================
-REM LIMPIAR INSTALADORES ANTERIORES
+REM LIMPIAR INSTALADOR ANTERIOR
 REM ==========================================
 if exist "VerificadorPrecios.exe" (
     del /f /q "VerificadorPrecios.exe"
 )
 
 REM ==========================================
-REM CREAR RUNTIME EMBEBIDO
+REM CREAR RUNTIME
 REM ==========================================
 echo Creando runtime...
 
@@ -91,16 +91,9 @@ echo Runtime creado correctamente
 echo.
 
 REM ==========================================
-REM GENERAR INSTALADOR
+REM GENERAR INSTALADOR CON ICONO
 REM ==========================================
 echo Generando instalador...
-
-REM --input "." toma TODO:
-REM VerificadorPrecios.jar
-REM lib/
-REM reportes/
-REM configuracion.properties
-REM runtime/
 
 "%JDK_PATH%\jpackage.exe" ^
  --input "." ^
@@ -110,6 +103,7 @@ REM runtime/
  --main-class "Ventanas.VentanaInicio" ^
  --type exe ^
  --runtime-image "runtime" ^
+ --icon "logo.ico" ^
  --install-dir "VerificadorPrecios" ^
  --win-dir-chooser ^
  --win-menu ^
@@ -131,20 +125,9 @@ echo INSTALADOR GENERADO CORRECTAMENTE
 echo ==========================================
 echo.
 
+echo Icono aplicado correctamente
 echo Instalador generado:
 echo %CD%\VerificadorPrecios.exe
-echo.
-
-echo Al instalar se copiara:
-echo - app\VerificadorPrecios.jar
-echo - app\lib\
-echo - app\reportes\
-echo - app\configuracion.properties
-echo - runtime\
-echo.
-
-echo Acceso directo:
-echo VerificadorPrecios
 echo.
 
 pause

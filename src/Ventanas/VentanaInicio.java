@@ -19,17 +19,21 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Image;
 import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
+import java.net.URL;
 import java.util.ArrayList;
 import javax.print.PrintService;
 import javax.print.PrintServiceLookup;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -61,6 +65,7 @@ public class VentanaInicio extends JFrame {
     private static final BarcodeFacade BARCODE_FACADE = new BarcodeFacade();
     private static final int BREAKPOINT_COMPACTO = 980;
     private static final int ANCHO_MINIMO_PANEL_DERECHO = 300;
+    private static final String RUTA_LOGO = "/Img/logo_icon.png";
 
     public static boolean controlAdministracion;
     public static boolean controlRutas;
@@ -104,6 +109,7 @@ public class VentanaInicio extends JFrame {
 
     public VentanaInicio() {
         initComponents();
+        aplicarLogoApp();
         Configuracion.leerArchivoDePropiedades();
         informacion.setText(Configuracion.informacion);
         configurarAcciones();
@@ -160,9 +166,14 @@ public class VentanaInicio extends JFrame {
                 new RoundedBorder(COLOR_BORDE, 28),
                 new EmptyBorder(18, 20, 18, 20)));
 
-        JPanel bloqueTitulos = new JPanel();
+        JPanel bloqueTitulos = new JPanel(new BorderLayout(14, 0));
         bloqueTitulos.setOpaque(false);
-        bloqueTitulos.setLayout(new BoxLayout(bloqueTitulos, BoxLayout.Y_AXIS));
+
+        JLabel logo = crearEtiquetaLogo();
+
+        JPanel textosHeader = new JPanel();
+        textosHeader.setOpaque(false);
+        textosHeader.setLayout(new BoxLayout(textosHeader, BoxLayout.Y_AXIS));
 
         etiquetaEncabezado = new JLabel("Verificador de precios");
         etiquetaEncabezado.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 30));
@@ -172,9 +183,14 @@ public class VentanaInicio extends JFrame {
         etiquetaSubtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         etiquetaSubtitulo.setForeground(COLOR_TEXTO);
 
-        bloqueTitulos.add(etiquetaEncabezado);
-        bloqueTitulos.add(Box.createVerticalStrut(4));
-        bloqueTitulos.add(etiquetaSubtitulo);
+        textosHeader.add(etiquetaEncabezado);
+        textosHeader.add(Box.createVerticalStrut(4));
+        textosHeader.add(etiquetaSubtitulo);
+
+        if (logo != null) {
+            bloqueTitulos.add(logo, BorderLayout.WEST);
+        }
+        bloqueTitulos.add(textosHeader, BorderLayout.CENTER);
 
         JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         acciones.setOpaque(false);
@@ -190,6 +206,42 @@ public class VentanaInicio extends JFrame {
         header.add(bloqueTitulos, BorderLayout.CENTER);
         header.add(acciones, BorderLayout.EAST);
         return header;
+    }
+
+    private void aplicarLogoApp() {
+        ImageIcon icono = cargarLogoOriginal();
+        if (icono != null) {
+            setIconImage(icono.getImage());
+        }
+    }
+
+    private JLabel crearEtiquetaLogo() {
+        Icon icono = cargarLogoEscalado(52, 52);
+        if (icono == null) {
+            return null;
+        }
+
+        JLabel etiquetaLogo = new JLabel(icono);
+        etiquetaLogo.setOpaque(false);
+        return etiquetaLogo;
+    }
+
+    private ImageIcon cargarLogoOriginal() {
+        URL recurso = getClass().getResource(RUTA_LOGO);
+        if (recurso == null) {
+            return null;
+        }
+        return new ImageIcon(recurso);
+    }
+
+    private Icon cargarLogoEscalado(int ancho, int alto) {
+        ImageIcon icono = cargarLogoOriginal();
+        if (icono == null) {
+            return null;
+        }
+
+        Image imagenEscalada = icono.getImage().getScaledInstance(ancho, alto, Image.SCALE_SMOOTH);
+        return new ImageIcon(imagenEscalada);
     }
 
     private JComponent crearHostContenidoPrincipal() {
