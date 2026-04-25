@@ -38,7 +38,7 @@ if not exist "configuracion.properties" (
 )
 
 REM Validar icono
-if not exist "logo.ico" (
+if not exist "logo_icon.png" (
     echo ERROR: No se encontro logo.ico
     goto :error
 )
@@ -103,7 +103,7 @@ echo Generando instalador...
  --main-class "Ventanas.VentanaInicio" ^
  --type exe ^
  --runtime-image "runtime" ^
- --icon "logo.ico" ^
+ --icon "logo_icon.png" ^
  --install-dir "VerificadorPrecios" ^
  --win-dir-chooser ^
  --win-menu ^
