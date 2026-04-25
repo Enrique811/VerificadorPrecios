@@ -26,6 +26,7 @@ public class Conexion {
     private static final String CONNECTION_ERROR_MESSAGE = "ERROR AL CONECTARSE CON LA BASE DE DATOS ... EL PROGRAMA FINALIZARA, Y EJECUTE NUEVAMENTE   ";
     private static final String LICENSE_EXPIRED_MESSAGE = "LA LICENCIA A EXPIRADO O VERIFICAR CONFIGURACION DE FECHA Y HORA";
     private static final String LICENSE_READ_ERROR_MESSAGE = "ERROR AL LEER LICENCIA";
+    private static final String LICENSE_MISSING_MESSAGE = "CAPTURE LA LICENCIA PRIMERO EN CONFIGURACION";
 
     public static String driver = DRIVER;
     public static String url = null;
@@ -55,13 +56,12 @@ public class Conexion {
         }
     }
 
-    public static void tieneLicenciavalida() {
+    public static boolean tieneLicenciavalida() {
         Date fechaHoySistema = new Date();
-        Date fechaHoyServidor = obtenerFechayHoraActualDelServidorDate();
 
         if (Configuracion.clave == null || Configuracion.clave.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(null, "No tiene licencia valida");
-            return;
+            JOptionPane.showMessageDialog(null, LICENSE_MISSING_MESSAGE);
+            return false;
         }
 
         try {
@@ -69,18 +69,27 @@ public class Conexion {
             Date[] decryptedDates = decryptDates(Configuracion.clave, secretKey);
 
             boolean licenciaVigenteSistema = isFechaDentroDelRango(fechaHoySistema, decryptedDates[0], decryptedDates[1]);
+
+            if (!licenciaVigenteSistema) {
+                mostrarErrorFatal(LICENSE_EXPIRED_MESSAGE + Configuracion.rutaEmpresa);
+                System.exit(0);
+            }
+
+            Date fechaHoyServidor = obtenerFechayHoraActualDelServidorDate();
             boolean licenciaVigenteServidor = fechaHoyServidor != null
                     && isFechaDentroDelRango(fechaHoyServidor, decryptedDates[0], decryptedDates[1]);
 
-            if (!licenciaVigenteSistema || !licenciaVigenteServidor) {
+            if (!licenciaVigenteServidor) {
                 mostrarErrorFatal(LICENSE_EXPIRED_MESSAGE + Configuracion.rutaEmpresa);
                 System.exit(0);
             }
 
             imprimirRangoLicencia(decryptedDates[0], decryptedDates[1], fechaHoySistema);
+            return true;
         } catch (Exception ex) {
             mostrarErrorFatal(LICENSE_READ_ERROR_MESSAGE);
             System.exit(0);
+            return false;
         }
     }
 

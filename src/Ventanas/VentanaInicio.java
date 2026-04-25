@@ -116,8 +116,7 @@ public class VentanaInicio extends JFrame {
         setLocationRelativeTo(null);
         setExtendedState(Frame.MAXIMIZED_BOTH);
         codigoBarras.requestFocusInWindow();
-        Conexion.ConectarBDEmpresa();
-        Conexion.tieneLicenciavalida();
+        inicializarLicenciaYConexion();
     }
 
     private void initComponents() {
@@ -646,6 +645,26 @@ public class VentanaInicio extends JFrame {
     private void abrirConfiguracion() {
         ConfiguracionWindow configuracionWindow = new ConfiguracionWindow(this, true);
         configuracionWindow.setVisible(true);
+    }
+
+    private void inicializarLicenciaYConexion() {
+        if (Configuracion.clave == null || Configuracion.clave.trim().isEmpty()) {
+            SwingUtilities.invokeLater(() -> {
+                abrirConfiguracion();
+                Configuracion.leerArchivoDePropiedades();
+                informacion.setText(Configuracion.informacion);
+                if (Configuracion.clave != null && !Configuracion.clave.trim().isEmpty()) {
+                    Conexion.tieneLicenciavalida();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Debe capturar una licencia para continuar.");
+                    dispose();
+                    System.exit(0);
+                }
+            });
+            return;
+        }
+
+        Conexion.tieneLicenciavalida();
     }
 
     private void consultarArticulo() {

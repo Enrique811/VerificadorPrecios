@@ -16,8 +16,12 @@ import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import javax.crypto.SecretKey;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -35,6 +39,8 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.WindowConstants;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 public class ConfiguracionWindow extends JDialog {
 
@@ -45,12 +51,16 @@ public class ConfiguracionWindow extends JDialog {
     private static final Color COLOR_TEXTO = new Color(75, 85, 99);
     private static final Color COLOR_VERDE = new Color(22, 163, 74);
     private static final Color COLOR_GRIS = new Color(229, 231, 235);
+    private static final Color COLOR_TEXTO_SECUNDARIO = new Color(107, 114, 128);
     private static final Dimension DIALOG_SIZE = new Dimension(820, 540);
     private static final Dimension MAX_DIALOG_SIZE = new Dimension(900, 560);
+    private static final String TEXTO_FECHA_NO_DISPONIBLE = "-";
 
     private JComboBox<ItemAmbiente> comboAmbiente;
     private JComboBox<ItemFormatoPrecio> comboFormatoPrecio;
     private JTextArea campoClave;
+    private JLabel etiquetaFechaInicio;
+    private JLabel etiquetaFechaFin;
     private JComboBox<String> comboImpresora;
     private JTextField campoInformacion;
     private JTextField campoIpEmpresa;
@@ -163,6 +173,8 @@ public class ConfiguracionWindow extends JDialog {
 
         campoClave = crearTextArea();
         tarjeta.add(crearCampoFormulario("Clave (Licencia)", crearScrollAreaCampo(campoClave)));
+        tarjeta.add(javax.swing.Box.createVerticalStrut(6));
+        tarjeta.add(crearPanelFechasLicencia());
         tarjeta.add(javax.swing.Box.createVerticalStrut(10));
 
         comboImpresora = crearComboBox();
@@ -301,6 +313,7 @@ public class ConfiguracionWindow extends JDialog {
             seleccionarAmbiente(properties.getProperty("ambiente", "a"));
             seleccionarFormatoPrecio(properties.getProperty("formatoPrecio", "CO"));
             campoClave.setText(properties.getProperty("clave", ""));
+            actualizarFechasLicencia();
             campoInformacion.setText(properties.getProperty("informacion", ""));
             campoIpEmpresa.setText(properties.getProperty("ipEmpresa", ""));
             cargarImpresoras(properties.getProperty("impresora", ""));
@@ -390,6 +403,22 @@ public class ConfiguracionWindow extends JDialog {
             return;
         }
 
+        if (!licenciaDesencriptaCorrectamente(clave)) {
+            campoClave.requestFocusInWindow();
+            ToastNotification.showWarning(this,
+                    "La clave no es v\u00e1lida. No se pudieron desencriptar fecha inicio y fecha fin",
+                    2500);
+            return;
+        }
+
+        if (!licenciaEstaVigente(clave)) {
+            campoClave.requestFocusInWindow();
+            ToastNotification.showWarning(this,
+                    "La licencia est\u00e1 expirada o fuera del rango permitido",
+                    2500);
+            return;
+        }
+
         if (ipEmpresa.isEmpty()) {
             campoIpEmpresa.requestFocusInWindow();
             ToastNotification.showWarning(this, "La IP Empresa no puede estar vac\u00eda", 2000);
@@ -427,6 +456,92 @@ public class ConfiguracionWindow extends JDialog {
                     "No se pudo guardar la configuraci\u00f3n.\n" + ex.getMessage(),
                     "Configuraci\u00f3n",
                     JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private JPanel crearPanelFechasLicencia() {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        etiquetaFechaInicio = crearEtiquetaLicencia("Fecha inicio: " + TEXTO_FECHA_NO_DISPONIBLE);
+        etiquetaFechaFin = crearEtiquetaLicencia("Fecha fin: " + TEXTO_FECHA_NO_DISPONIBLE);
+
+        panel.add(etiquetaFechaInicio);
+        panel.add(javax.swing.Box.createVerticalStrut(2));
+        panel.add(etiquetaFechaFin);
+
+        campoClave.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                actualizarFechasLicencia();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                actualizarFechasLicencia();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                actualizarFechasLicencia();
+            }
+        });
+
+        return panel;
+    }
+
+    private JLabel crearEtiquetaLicencia(String texto) {
+        JLabel etiqueta = new JLabel(texto);
+        etiqueta.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        etiqueta.setForeground(COLOR_TEXTO_SECUNDARIO);
+        etiqueta.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return etiqueta;
+    }
+
+    private void actualizarFechasLicencia() {
+        Date[] fechas = obtenerFechasLicencia(campoClave.getText().trim());
+        SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        if (fechas == null) {
+            etiquetaFechaInicio.setText("Fecha inicio: " + TEXTO_FECHA_NO_DISPONIBLE);
+            etiquetaFechaFin.setText("Fecha fin: " + TEXTO_FECHA_NO_DISPONIBLE);
+            return;
+        }
+
+        etiquetaFechaInicio.setText("Fecha inicio: " + formato.format(fechas[0]));
+        etiquetaFechaFin.setText("Fecha fin: " + formato.format(fechas[1]));
+    }
+
+    private boolean licenciaDesencriptaCorrectamente(String claveEncriptada) {
+        Date[] fechas = obtenerFechasLicencia(claveEncriptada);
+        return fechas != null && fechas.length == 2 && fechas[0] != null && fechas[1] != null;
+    }
+
+    private boolean licenciaEstaVigente(String claveEncriptada) {
+        Date[] fechas = obtenerFechasLicencia(claveEncriptada);
+        if (fechas == null || fechas.length != 2 || fechas[0] == null || fechas[1] == null) {
+            return false;
+        }
+
+        Date fechaActual = new Date();
+        return (fechaActual.after(fechas[0]) || fechaActual.equals(fechas[0]))
+                && (fechaActual.before(fechas[1]) || fechaActual.equals(fechas[1]));
+    }
+
+    private Date[] obtenerFechasLicencia(String claveEncriptada) {
+        if (claveEncriptada == null || claveEncriptada.isEmpty()) {
+            return null;
+        }
+
+        try {
+            SecretKey secretKey = Configuracion.generateFixedSecretKey(Configuracion.key);
+            return Configuracion.decryptDates(claveEncriptada, secretKey);
+        } catch (NoSuchAlgorithmException ex) {
+            return null;
+        } catch (Exception ex) {
+            return null;
         }
     }
 
