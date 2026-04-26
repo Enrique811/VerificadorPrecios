@@ -39,8 +39,8 @@ if not exist "configuracion.properties" (
     goto :error
 )
 
-if not exist "post-instalacion.bat" (
-    echo ERROR: No se encontro post-instalacion.bat
+if not exist "fonts" (
+    echo ERROR: No se encontro fonts
     goto :error
 )
 
@@ -91,15 +91,10 @@ mkdir build
 
 copy /y "VerificadorPrecios.jar" "build\"
 copy /y "configuracion.properties" "build\"
-copy /y "post-instalacion.bat" "build\"
 
-xcopy "lib" "build\lib\" /e /i /y
-xcopy "reportes" "build\reportes\" /e /i /y
-
-if errorlevel 1 (
-    echo ERROR al crear carpeta build
-    goto :error
-)
+xcopy "lib" "build\lib\" /e /i /y || goto :error
+xcopy "reportes" "build\reportes\" /e /i /y || goto :error
+xcopy "fonts" "build\fonts\" /e /i /y || goto :error
 
 echo Build creado correctamente
 echo.
@@ -136,7 +131,8 @@ echo Generando instalador...
  --runtime-image "runtime" ^
  --install-dir "VerificadorPrecios" ^
  --vendor "edelangel" ^
- --app-version "1.0" ^
+ --app-version "1.0.0" ^
+ --win-upgrade-uuid "12345678-1234-1234-1234-123456789012" ^
  --java-options "-Dfile.encoding=UTF-8"
 
 if errorlevel 1 (
@@ -182,13 +178,8 @@ echo ERROR EN EL PROCESO
 echo ==========================================
 echo.
 
-if exist "build" (
-    rmdir /s /q "build"
-)
-
-if exist "runtime" (
-    rmdir /s /q "runtime"
-)
+if exist "build" rmdir /s /q "build"
+if exist "runtime" rmdir /s /q "runtime"
 
 pause
 exit /b 1

@@ -15,6 +15,11 @@
         <copy file="${basedir}/fonts/fonts.xml" todir="${build.classes.dir}" failonerror="false"/>
         <copy file="${basedir}/fonts/jasperreports_extension.properties" todir="${build.classes.dir}" failonerror="false"/>
     </target>
+
+    <target name="-post-jar">
+        <mkdir dir="${basedir}/Ejecutable"/>
+        <copy file="${dist.jar}" tofile="${basedir}/Ejecutable/VerificadorPrecios.jar" overwrite="true"/>
+    </target>
     <!--
 
     There exist several targets which are by default empty and which can be 

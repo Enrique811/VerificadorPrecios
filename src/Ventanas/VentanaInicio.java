@@ -66,6 +66,8 @@ public class VentanaInicio extends JFrame {
     private static final int BREAKPOINT_COMPACTO = 980;
     private static final int ANCHO_MINIMO_PANEL_DERECHO = 300;
     private static final String RUTA_LOGO = "/Img/logo_icon.png";
+    private static final String VERSION = "v1.0.0";
+    private static final String FECHA_ACTUALIZACION = "2026-04-25";
 
     public static boolean controlAdministracion;
     public static boolean controlRutas;
@@ -353,12 +355,11 @@ public class VentanaInicio extends JFrame {
         etiquetaAccesos.setForeground(COLOR_TEXTO);
         etiquetaAccesos.setBorder(new EmptyBorder(4, 0, 10, 0));
 
-        etiquetaTotales = new JLabel("Esperando consulta");
-        etiquetaTotales.setOpaque(true);
-        etiquetaTotales.setBackground(COLOR_AZUL_SUAVE);
-        etiquetaTotales.setForeground(COLOR_AZUL);
-        etiquetaTotales.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 15));
-        etiquetaTotales.setBorder(new EmptyBorder(10, 12, 10, 12));
+        etiquetaTotales = new JLabel(construirTextoMetadataSistema());
+        etiquetaTotales.setOpaque(false);
+        etiquetaTotales.setForeground(COLOR_TEXTO);
+        etiquetaTotales.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        etiquetaTotales.setBorder(new EmptyBorder(10, 2, 10, 2));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -716,7 +717,7 @@ public class VentanaInicio extends JFrame {
         presentacion.setText(valorVisible(presentacionTexto));
         formato.setText(valorVisible(existenciaTexto));
         precio.setText(valorVisible(precioTexto));
-        etiquetaTotales.setText("Último precio consultado: " + valorVisible(precioTexto));
+        etiquetaTotales.setText(construirTextoMetadataSistema());
     }
 
     public final void limpiarDatosArticulo() {
@@ -724,7 +725,11 @@ public class VentanaInicio extends JFrame {
         presentacion.setText("-");
         formato.setText("-");
         precio.setText("$ 0");
-        etiquetaTotales.setText("Esperando consulta");
+        etiquetaTotales.setText(construirTextoMetadataSistema());
+    }
+
+    private String construirTextoMetadataSistema() {
+        return "Ver.: " + VERSION + " Última actualización: " + FECHA_ACTUALIZACION;
     }
 
     private String valorVisible(String valor) {
