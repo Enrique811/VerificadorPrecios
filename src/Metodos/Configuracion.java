@@ -42,7 +42,7 @@ public class Configuracion {
     public static String reporte;
      
     private static String url = System.getProperty("user.dir") + "/configuracion.properties";
-    public static String key = "Artemisa";
+    public static String key = "K7m2X9qLp4";
 
     public static void leerArchivoDePropiedades() {
         try {
