@@ -45,11 +45,8 @@ public class Configuracion {
     public static String key = "Artemisa";
 
     public static void leerArchivoDePropiedades() {
-        Properties propiedades = new Properties();
-        InputStreamReader entrada;
         try {
-            entrada = new InputStreamReader(new FileInputStream(url), StandardCharsets.UTF_8);
-            propiedades.load(entrada);
+            Properties propiedades = ConfigManager.loadProperties();
             ipEmpresa = propiedades.getProperty("ipEmpresa");
             rutaEmpresa = propiedades.getProperty("rutaEmpresa");
             clave = propiedades.getProperty("clave");
@@ -78,19 +75,8 @@ public class Configuracion {
     }
 
     public static void guardarInformacionEnArchivo(String valor) {
-        Properties propiedades = new Properties();
-
-        try (InputStreamReader entrada = new InputStreamReader(new FileInputStream(url), StandardCharsets.UTF_8)) {
-            propiedades.load(entrada);
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "Error al leer el archivo: " + e, "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        propiedades.setProperty("informacion", valor);
-
-        try (OutputStreamWriter salida = new OutputStreamWriter(new FileOutputStream(url), StandardCharsets.UTF_8)) {
-            propiedades.store(salida, null);
+        try {
+            ConfigManager.saveInformation(valor);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Error al guardar en el archivo: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
