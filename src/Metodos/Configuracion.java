@@ -167,42 +167,4 @@ public class Configuracion {
         return new SecretKeySpec(claveBytes, "AES");
     }
 
-    // Método principal de prueba
-    public static void main(String[] args) {
-        try {
-
-            // Generar una clave fija a partir de una cadena
-            SecretKey secretKey = generateFixedSecretKey(key);
-            //Artemisa
-            // Imprimir la clave en formato hexadecimal (solo para visualización)
-            byte[] claveBytes = secretKey.getEncoded();
-            StringBuilder sb = new StringBuilder();
-            for (byte b : claveBytes) {
-                sb.append(String.format("%02x", b));
-            }
-
-            System.out.println("Clave secreta fija (en formato hexadecimal): " + sb.toString());
-
-            // Fechas de inicio y fin de ejemplo
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            Date fechaInicio = dateFormat.parse("2025-04-01 00:00:00");
-            Date fechaFin = dateFormat.parse("2025-12-31 23:59:59");
-            Date fechaHoy = new Date();
-            dateFormat.format(fechaHoy);
-
-            // Encriptar las fechas
-            String encryptedData = encryptDates(fechaInicio, fechaFin, secretKey);
-            System.out.println("Datos encriptados: " + encryptedData);
-
-            // Desencriptar las fechas
-            Date[] decryptedDates = decryptDates(encryptedData, secretKey);
-            System.out.println("Fecha de inicio desencriptada: " + dateFormat.format(decryptedDates[0]));
-            System.out.println("Fecha de fin desencriptada: " + dateFormat.format(decryptedDates[1]));
-            System.out.println("" + dateFormat.format(fechaHoy));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
 }

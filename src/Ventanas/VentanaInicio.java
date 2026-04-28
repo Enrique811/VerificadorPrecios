@@ -750,10 +750,6 @@ public class VentanaInicio extends JFrame {
         }
     }
 
-    public static void main(String args[]) {
-        App.Main.main(args);
-    }
-
     private static final class RoundedPanel extends JPanel {
 
         private final int radio;
