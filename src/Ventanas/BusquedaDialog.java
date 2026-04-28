@@ -75,13 +75,13 @@ public class BusquedaDialog extends JDialog {
         setTitle("Buscar productos");
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setUndecorated(true);
-        setPreferredSize(new Dimension(920, 580));
+        setPreferredSize(new Dimension(980, 720));
 
         RoundedPanel panelPrincipal = new RoundedPanel(30, Color.WHITE);
         panelPrincipal.setLayout(new BorderLayout(18, 18));
         panelPrincipal.setBorder(BorderFactory.createCompoundBorder(
                 new ShadowBorder(),
-                new EmptyBorder(24, 24, 24, 24)));
+                new EmptyBorder(18, 18, 18, 18)));
 
         panelPrincipal.add(crearEncabezado(), BorderLayout.NORTH);
         panelPrincipal.add(crearTabla(), BorderLayout.CENTER);
@@ -101,7 +101,7 @@ public class BusquedaDialog extends JDialog {
         gbc.weightx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.WEST;
-        gbc.insets = new Insets(0, 0, 8, 0);
+        gbc.insets = new Insets(0, 0, 6, 0);
 
         JLabel titulo = new JLabel("B\u00fasqueda de productos");
         titulo.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 24));
@@ -121,7 +121,7 @@ public class BusquedaDialog extends JDialog {
         Nombre.setForeground(COLOR_TITULO);
         Nombre.setBorder(BorderFactory.createCompoundBorder(
                 new RoundedBorder(COLOR_BORDE, 18),
-                new EmptyBorder(14, 16, 14, 16)));
+                new EmptyBorder(12, 16, 12, 16)));
         tarjeta.add(Nombre, gbc);
 
         return tarjeta;
@@ -130,7 +130,7 @@ public class BusquedaDialog extends JDialog {
     private JComponent crearTabla() {
         listaArticulos = new JTable(modelo);
         listaArticulos.setDefaultRenderer(Object.class, new Metodos.FormatoTablaBArt());
-        listaArticulos.setRowHeight(34);
+        listaArticulos.setRowHeight(28);
         listaArticulos.setGridColor(new Color(229, 231, 235));
         listaArticulos.setSelectionBackground(COLOR_AZUL_SUAVE);
         listaArticulos.setSelectionForeground(COLOR_TITULO);
@@ -164,7 +164,7 @@ public class BusquedaDialog extends JDialog {
         RoundedPanel tarjeta = new RoundedPanel(24, Color.WHITE);
         tarjeta.setBorder(BorderFactory.createCompoundBorder(
                 new RoundedBorder(COLOR_BORDE, 24),
-                new EmptyBorder(18, 18, 18, 18)));
+                new EmptyBorder(14, 14, 14, 14)));
         return tarjeta;
     }
 
