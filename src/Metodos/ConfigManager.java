@@ -12,7 +12,7 @@ import java.util.Properties;
 public final class ConfigManager {
 
     private static final String CONFIG_PATH = System.getProperty("user.dir") + "/configuracion.properties";
-    public static final String DEFAULT_DB = "SYSDBA";
+    public static final String DEFAULT_USUARIO = "SYSDBA";
     public static final String DEFAULT_PASSWORD = "masterkey";
 
     private ConfigManager() {
@@ -35,7 +35,7 @@ public final class ConfigManager {
     }
 
     public static void saveConfiguration(String ambiente, String clave, String impresora,
-            String informacion, String ipEmpresa, String db, String password,
+            String informacion, String ipEmpresa, String usuario, String password,
             String formatoPrecio, String reporte) throws IOException {
         Properties current = loadProperties();
         current.setProperty("ambiente", ambiente);
@@ -43,7 +43,8 @@ public final class ConfigManager {
         current.setProperty("impresora", impresora);
         current.setProperty("informacion", informacion);
         current.setProperty("ipEmpresa", ipEmpresa);
-        current.setProperty("db", db);
+        current.remove("db");
+        current.setProperty("usuario", usuario);
         current.setProperty("password", password);
         current.setProperty("formatoPrecio", formatoPrecio);
         current.setProperty("reporte", reporte);

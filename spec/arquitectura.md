@@ -58,7 +58,7 @@ Notas:
 Responsabilidades:
 
 - leer y persistir `configuracion.properties`;
-- editar ambiente, licencia, impresora, informacion e IP;
+- editar ambiente, licencia, impresora, informacion, IP y usuario de base de datos;
 - propagar cambios a la ventana principal.
 
 Diferencia interna:
@@ -79,8 +79,8 @@ Responsabilidades:
 
 Detalles:
 
-- usuario Firebird fijo: `SYSDBA`
-- password fijo: `masterkey`
+- usuario Firebird configurable, con default `SYSDBA`
+- password configurable, con default `masterkey`
 - charset configurado: `ISO8859_1`
 - la licencia depende de una clave cifrada almacenada en propiedades.
 

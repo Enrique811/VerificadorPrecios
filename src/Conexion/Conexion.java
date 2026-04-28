@@ -137,10 +137,10 @@ public class Conexion {
     }
 
     private static String obtenerUsuarioConfigurado() {
-        if (Configuracion.db == null || Configuracion.db.trim().isEmpty()) {
+        if (Configuracion.usuario == null || Configuracion.usuario.trim().isEmpty()) {
             return USER;
         }
-        return Configuracion.db.trim();
+        return Configuracion.usuario.trim();
     }
 
     private static String obtenerPasswordConfigurado() {

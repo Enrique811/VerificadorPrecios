@@ -34,7 +34,7 @@ public class Configuracion {
 
     public static String ipEmpresa;
     public static String rutaEmpresa;
-    public static String db;
+    public static String usuario;
     public static String password;
     public static String clave;
     public static String informacion;
@@ -51,7 +51,8 @@ public class Configuracion {
             Properties propiedades = ConfigManager.loadProperties();
             ipEmpresa = propiedades.getProperty("ipEmpresa");
             rutaEmpresa = propiedades.getProperty("rutaEmpresa");
-            db = propiedades.getProperty("db", ConfigManager.DEFAULT_DB);
+            usuario = propiedades.getProperty("usuario",
+                    propiedades.getProperty("db", ConfigManager.DEFAULT_USUARIO));
             password = propiedades.getProperty("password", ConfigManager.DEFAULT_PASSWORD);
             clave = propiedades.getProperty("clave");
             informacion = propiedades.getProperty("informacion");
@@ -62,7 +63,7 @@ public class Configuracion {
 
             System.out.println("IP EMPRESA: " + ipEmpresa);
             System.out.println("RUTA EMPRESA: " + rutaEmpresa);
-            System.out.println("DB: " + db);
+            System.out.println("USUARIO: " + usuario);
             System.out.println("PASSWORD: " + ((password == null || password.trim().isEmpty()) ? "" : "******"));
             System.out.println("CLAVE: " + clave);
             System.out.println("INFORMACION: " + informacion);

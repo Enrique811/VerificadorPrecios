@@ -65,7 +65,7 @@ public class ConfiguracionWindow extends JDialog {
     private JComboBox<String> comboImpresora;
     private JTextField campoInformacion;
     private JTextField campoIpEmpresa;
-    private JTextField campoDb;
+    private JTextField campoUsuario;
     private JPasswordField campoPassword;
     private JComboBox<String> comboReporte;
 
@@ -196,8 +196,8 @@ public class ConfiguracionWindow extends JDialog {
         tarjeta.add(crearCampoFormulario("IP Empresa", campoIpEmpresa));
         tarjeta.add(javax.swing.Box.createVerticalStrut(10));
 
-        campoDb = crearTextField();
-        tarjeta.add(crearCampoFormulario("DB (Usuario)", campoDb));
+        campoUsuario = crearTextField();
+        tarjeta.add(crearCampoFormulario("Usuario", campoUsuario));
         tarjeta.add(javax.swing.Box.createVerticalStrut(10));
 
         campoPassword = crearPasswordField();
@@ -339,7 +339,8 @@ public class ConfiguracionWindow extends JDialog {
             actualizarFechasLicencia();
             campoInformacion.setText(properties.getProperty("informacion", ""));
             campoIpEmpresa.setText(properties.getProperty("ipEmpresa", ""));
-            campoDb.setText(properties.getProperty("db", ConfigManager.DEFAULT_DB));
+            campoUsuario.setText(properties.getProperty("usuario",
+                    properties.getProperty("db", ConfigManager.DEFAULT_USUARIO)));
             campoPassword.setText(properties.getProperty("password", ConfigManager.DEFAULT_PASSWORD));
             cargarImpresoras(properties.getProperty("impresora", ""));
             cargarReportes(properties.getProperty("reporte", ""));
@@ -420,7 +421,7 @@ public class ConfiguracionWindow extends JDialog {
     private void guardarConfiguracion() {
         String clave = campoClave.getText().trim();
         String ipEmpresa = campoIpEmpresa.getText().trim();
-        String db = campoDb.getText().trim();
+        String usuario = campoUsuario.getText().trim();
         String password = new String(campoPassword.getPassword());
         String informacion = campoInformacion.getText().trim();
 
@@ -452,9 +453,9 @@ public class ConfiguracionWindow extends JDialog {
             return;
         }
 
-        if (db.isEmpty()) {
-            campoDb.requestFocusInWindow();
-            ToastNotification.showWarning(this, "El usuario DB no puede estar vac\u00edo", 2000);
+        if (usuario.isEmpty()) {
+            campoUsuario.requestFocusInWindow();
+            ToastNotification.showWarning(this, "El usuario no puede estar vac\u00edo", 2000);
             return;
         }
 
@@ -480,7 +481,7 @@ public class ConfiguracionWindow extends JDialog {
                     impresora,
                     informacion,
                     ipEmpresa,
-                    db,
+                    usuario,
                     password,
                     formatoSeleccionado != null ? formatoSeleccionado.codigo : "CO",
                     reporte);
