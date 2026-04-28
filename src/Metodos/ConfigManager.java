@@ -1,5 +1,6 @@
 package Metodos;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -14,8 +15,10 @@ public final class ConfigManager {
     private static final String CONFIG_PATH = System.getProperty("user.dir") + "/configuracion.properties";
     public static final String DEFAULT_USUARIO = "SYSDBA";
     public static final String DEFAULT_PASSWORD = "masterkey";
+    private final Properties properties = new Properties();
 
-    private ConfigManager() {
+    public ConfigManager() {
+        reload();
     }
 
     public static Properties loadProperties() throws IOException {
@@ -32,6 +35,42 @@ public final class ConfigManager {
         Properties current = loadProperties();
         current.setProperty("informacion", informacion);
         storeProperties(current);
+    }
+
+    public boolean exists() {
+        return new File(CONFIG_PATH).exists();
+    }
+
+    public boolean configCompleta() {
+        return hasValue("ipEmpresa")
+                && hasValue("usuario")
+                && hasValue("password")
+                && hasValue("rutaEmpresa");
+    }
+
+    public String get(String key) {
+        return properties.getProperty(key, "");
+    }
+
+    public void set(String key, String value) {
+        properties.setProperty(key, value == null ? "" : value.trim());
+    }
+
+    public void save() throws IOException {
+        storeProperties(properties);
+    }
+
+    public void reload() {
+        properties.clear();
+        if (!exists()) {
+            return;
+        }
+        try {
+            properties.putAll(loadProperties());
+            migrateLegacyKeys(properties);
+        } catch (IOException ex) {
+            properties.clear();
+        }
     }
 
     public static void saveConfiguration(String ambiente, String clave, String impresora,
@@ -60,6 +99,7 @@ public final class ConfigManager {
         try {
             input = new InputStreamReader(new FileInputStream(CONFIG_PATH), StandardCharsets.UTF_8);
             properties.load(input);
+            migrateLegacyKeys(properties);
             return properties;
         } finally {
             if (input != null) {
@@ -89,6 +129,20 @@ public final class ConfigManager {
     private static String encodeBase64(String value) {
         String safeValue = value == null ? "" : value;
         return Base64.getEncoder().encodeToString(safeValue.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private boolean hasValue(String key) {
+        String value = get(key);
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private static void migrateLegacyKeys(Properties properties) {
+        String usuario = properties.getProperty("usuario", "").trim();
+        String db = properties.getProperty("db", "").trim();
+        if (usuario.isEmpty() && !db.isEmpty()) {
+            properties.setProperty("usuario", db);
+        }
+        properties.remove("db");
     }
 
     private static String decodeBase64(String value) {

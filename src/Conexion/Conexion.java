@@ -1,5 +1,6 @@
 package Conexion;
 
+import Metodos.ConfigManager;
 import Metodos.Configuracion;
 import static Metodos.Configuracion.decryptDates;
 import static SQL.SQLFechaHora.obtenerFechayHoraActualDelServidorDate;
@@ -126,6 +127,35 @@ public class Conexion {
     public static void cerrarRecursosConsulta() {
         cerrarResultado();
         cerrarPreparacion();
+    }
+
+    public static boolean probarConexion(ConfigManager config) {
+        if (config == null || !config.configCompleta()) {
+            return false;
+        }
+
+        String ipEmpresa = config.get("ipEmpresa").trim();
+        String rutaEmpresa = config.get("rutaEmpresa").trim();
+        String usuarioConfig = config.get("usuario").trim();
+        String passwordConfig = config.get("password");
+        String urlConexion = "jdbc:firebirdsql://" + ipEmpresa + "/" + rutaEmpresa + CHARSET_SUFFIX;
+
+        Connection conexionPrueba = null;
+        try {
+            Class.forName(driver);
+            conexionPrueba = DriverManager.getConnection(urlConexion, usuarioConfig, passwordConfig);
+            return true;
+        } catch (ClassNotFoundException | SQLException ex) {
+            return false;
+        } finally {
+            if (conexionPrueba != null) {
+                try {
+                    conexionPrueba.close();
+                } catch (SQLException ex) {
+                    System.err.println("No se pudo cerrar la conexion de prueba: " + ex.getMessage());
+                }
+            }
+        }
     }
 
     private static boolean estaConexionActiva() throws SQLException {

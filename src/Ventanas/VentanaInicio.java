@@ -848,12 +848,7 @@ public class VentanaInicio extends JFrame {
     }
 
     public static void main(String args[]) {
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new VentanaInicio().setVisible(true);
-            }
-        });
+        App.Main.main(args);
     }
 
     private static final class RoundedPanel extends JPanel {
