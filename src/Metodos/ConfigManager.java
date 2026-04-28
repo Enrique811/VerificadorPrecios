@@ -35,17 +35,11 @@ public final class ConfigManager {
     }
 
     public static void saveConfiguration(String ambiente, String clave, String impresora,
-            String informacion, String ipEmpresa, String usuario, String password,
             String formatoPrecio, String reporte) throws IOException {
         Properties current = loadProperties();
         current.setProperty("ambiente", ambiente);
         current.setProperty("clave", clave);
         current.setProperty("impresora", impresora);
-        current.setProperty("informacion", informacion);
-        current.setProperty("ipEmpresa", ipEmpresa);
-        current.remove("db");
-        current.setProperty("usuario", usuario);
-        current.setProperty("password", password);
         current.setProperty("formatoPrecio", formatoPrecio);
         current.setProperty("reporte", reporte);
 
