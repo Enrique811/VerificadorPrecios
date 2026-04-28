@@ -256,8 +256,8 @@ public class VentanaInicio extends JFrame {
     private JPanel crearTarjetaCaptura() {
         RoundedPanel tarjeta = crearTarjetaBase();
         tarjeta.setLayout(new GridBagLayout());
-        tarjeta.setPreferredSize(new Dimension(0, 170));
-        tarjeta.setMinimumSize(new Dimension(0, 170));
+        tarjeta.setPreferredSize(new Dimension(0, 210));
+        tarjeta.setMinimumSize(new Dimension(0, 210));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -398,10 +398,7 @@ public class VentanaInicio extends JFrame {
         noEncontrado.setBorder(new EmptyBorder(8, 12, 8, 12));
         mostrarEstadoNeutral("Listo para consultar productos");
 
-        JLabel ayuda = new JLabel("<html><div style='text-align:right; line-height:1.5;'>"
-                + "La ventana se adapta al tamaño disponible y mantiene visibles los datos clave.<br>"
-                + "Usa la búsqueda modal para localizar productos sin perder contexto."
-                + "</div></html>");
+        JLabel ayuda = new JLabel("Usa la búsqueda modal para localizar productos sin perder contexto.");
         ayuda.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         ayuda.setForeground(COLOR_TEXTO);
 
