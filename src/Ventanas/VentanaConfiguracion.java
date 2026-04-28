@@ -4,7 +4,11 @@ import App.Main;
 import Conexion.Conexion;
 import Metodos.ConfigManager;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -12,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -20,10 +25,22 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
-import javax.swing.SwingConstants;
 import javax.swing.WindowConstants;
+import javax.swing.border.AbstractBorder;
+import javax.swing.border.EmptyBorder;
 
 public class VentanaConfiguracion extends JFrame {
+
+    private static final Color COLOR_FONDO = new Color(243, 244, 246);
+    private static final Color COLOR_TARJETA = Color.WHITE;
+    private static final Color COLOR_BORDE = new Color(220, 226, 232);
+    private static final Color COLOR_TITULO = new Color(31, 41, 55);
+    private static final Color COLOR_TEXTO = new Color(75, 85, 99);
+    private static final Color COLOR_VERDE = new Color(22, 163, 74);
+    private static final Color COLOR_GRIS = new Color(229, 231, 235);
+    private static final Color COLOR_AZUL_SUAVE = new Color(232, 240, 254);
+    private static final Dimension DIALOG_SIZE = new Dimension(740, 420);
+    private static final Dimension MAX_DIALOG_SIZE = new Dimension(860, 480);
 
     private JTextField campoIpEmpresa;
     private JTextField campoUsuario;
@@ -40,38 +57,80 @@ public class VentanaConfiguracion extends JFrame {
     private void initComponents() {
         setTitle("VentanaConfiguracion");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(520, 300));
+        setResizable(false);
 
-        JPanel root = new JPanel(new BorderLayout(12, 12));
-        root.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
+        RoundedPanel root = new RoundedPanel(28, COLOR_FONDO);
+        root.setLayout(new BorderLayout(12, 12));
+        root.setBorder(new EmptyBorder(12, 12, 12, 12));
 
-        JLabel titulo = new JLabel("Configuracion de conexion", SwingConstants.LEFT);
-        titulo.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
-        root.add(titulo, BorderLayout.NORTH);
+        root.add(crearHeader(), BorderLayout.NORTH);
         root.add(crearFormulario(), BorderLayout.CENTER);
         root.add(crearFooter(), BorderLayout.SOUTH);
 
         setContentPane(root);
+        setPreferredSize(calcularTamanoDialogo());
+        setMaximumSize(calcularTamanoDialogo());
         pack();
     }
 
+    private Dimension calcularTamanoDialogo() {
+        Dimension size = new Dimension(DIALOG_SIZE);
+        size.width = Math.min(size.width, MAX_DIALOG_SIZE.width);
+        size.height = Math.min(size.height, MAX_DIALOG_SIZE.height);
+        return size;
+    }
+
+    private JPanel crearHeader() {
+        RoundedPanel header = crearTarjeta();
+        header.setLayout(new BorderLayout());
+
+        JPanel textos = new JPanel();
+        textos.setOpaque(false);
+        textos.setLayout(new BoxLayout(textos, BoxLayout.Y_AXIS));
+
+        JLabel titulo = new JLabel("Configuraci\u00f3n de conexi\u00f3n");
+        titulo.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 24));
+        titulo.setForeground(COLOR_TITULO);
+
+        JLabel subtitulo = new JLabel("<html>Selecciona el archivo .fdb y completa los datos de acceso para iniciar.</html>");
+        subtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitulo.setForeground(COLOR_TEXTO);
+
+        textos.add(titulo);
+        textos.add(javax.swing.Box.createVerticalStrut(4));
+        textos.add(subtitulo);
+
+        header.add(textos, BorderLayout.CENTER);
+        return header;
+    }
+
     private JPanel crearFormulario() {
+        RoundedPanel tarjeta = crearTarjeta();
+        tarjeta.setLayout(new BoxLayout(tarjeta, BoxLayout.Y_AXIS));
+        tarjeta.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         JPanel panel = new JPanel(new GridBagLayout());
+        panel.setOpaque(false);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.insets = new Insets(8, 8, 8, 8);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 0;
 
-        panel.add(new JLabel("ipEmpresa"), gbc);
+        JLabel etiquetaIp = crearEtiquetaCampo("ipEmpresa");
+        JLabel etiquetaUsuario = crearEtiquetaCampo("usuario");
+        JLabel etiquetaPassword = crearEtiquetaCampo("password");
+        JLabel etiquetaRuta = crearEtiquetaCampo("rutaEmpresa");
+
+        panel.add(etiquetaIp, gbc);
         gbc.gridy++;
-        panel.add(new JLabel("usuario"), gbc);
+        panel.add(etiquetaUsuario, gbc);
         gbc.gridy++;
-        panel.add(new JLabel("password"), gbc);
+        panel.add(etiquetaPassword, gbc);
         gbc.gridy++;
-        panel.add(new JLabel("rutaEmpresa"), gbc);
+        panel.add(etiquetaRuta, gbc);
 
         campoIpEmpresa = new JTextField(28);
         campoUsuario = new JTextField(28);
@@ -94,14 +153,22 @@ public class VentanaConfiguracion extends JFrame {
         contenedorRuta.add(botonRutaEmpresa, BorderLayout.EAST);
         panel.add(contenedorRuta, gbc);
 
-        return panel;
+        tarjeta.add(panel);
+        return tarjeta;
     }
 
     private JPanel crearFooter() {
-        JPanel panel = new JPanel(new BorderLayout());
-        JButton botonGuardar = new JButton("Guardar");
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        panel.setOpaque(false);
+
+        JButton botonCancelar = crearBoton("Cancelar", COLOR_GRIS, COLOR_TITULO);
+        botonCancelar.addActionListener(e -> dispose());
+
+        JButton botonGuardar = crearBoton("Guardar", new Color(220, 252, 231), COLOR_VERDE);
         botonGuardar.addActionListener(e -> guardarConfiguracion());
-        panel.add(botonGuardar, BorderLayout.EAST);
+
+        panel.add(botonCancelar);
+        panel.add(botonGuardar);
         return panel;
     }
 
@@ -178,6 +245,78 @@ public class VentanaConfiguracion extends JFrame {
         int resultado = chooser.showOpenDialog(this);
         if (resultado == JFileChooser.APPROVE_OPTION && chooser.getSelectedFile() != null) {
             campoRutaEmpresa.setText(chooser.getSelectedFile().getAbsolutePath());
+        }
+    }
+
+    private JLabel crearEtiquetaCampo(String texto) {
+        JLabel etiqueta = new JLabel(texto);
+        etiqueta.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 14));
+        etiqueta.setForeground(COLOR_TITULO);
+        return etiqueta;
+    }
+
+    private JButton crearBoton(String texto, Color fondo, Color colorTexto) {
+        JButton boton = new JButton(texto);
+        boton.setBackground(fondo);
+        boton.setForeground(colorTexto);
+        boton.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 14));
+        boton.setFocusPainted(false);
+        boton.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedBorder(fondo.darker(), 18),
+                new EmptyBorder(8, 16, 8, 16)));
+        return boton;
+    }
+
+    private RoundedPanel crearTarjeta() {
+        RoundedPanel tarjeta = new RoundedPanel(28, COLOR_TARJETA);
+        tarjeta.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tarjeta.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedBorder(COLOR_BORDE, 28),
+                new EmptyBorder(16, 16, 16, 16)));
+        return tarjeta;
+    }
+
+    private static final class RoundedPanel extends JPanel {
+
+        private final int radio;
+        private final Color colorFondo;
+
+        private RoundedPanel(int radio, Color colorFondo) {
+            this.radio = radio;
+            this.colorFondo = colorFondo;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(colorFondo);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), radio, radio);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    private static final class RoundedBorder extends AbstractBorder {
+
+        private final Color color;
+        private final int radio;
+
+        private RoundedBorder(Color color, int radio) {
+            this.color = color;
+            this.radio = radio;
+        }
+
+        @Override
+        public void paintBorder(Component c, java.awt.Graphics g, int x, int y, int width, int height) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(color);
+            g2.drawRoundRect(x, y, width - 1, height - 1, radio, radio);
+            g2.dispose();
         }
     }
 }
