@@ -47,6 +47,8 @@ public class Conexion {
             }
 
             Class.forName(driver);
+            usuario = obtenerUsuarioConfigurado();
+            password = obtenerPasswordConfigurado();
             url = construirUrlConexion();
             conexion = DriverManager.getConnection(url, usuario, password);
             System.out.println(url);
@@ -132,6 +134,20 @@ public class Conexion {
 
     private static String construirUrlConexion() {
         return "jdbc:firebirdsql://" + Configuracion.ipEmpresa + "/" + Configuracion.rutaEmpresa + CHARSET_SUFFIX;
+    }
+
+    private static String obtenerUsuarioConfigurado() {
+        if (Configuracion.db == null || Configuracion.db.trim().isEmpty()) {
+            return USER;
+        }
+        return Configuracion.db.trim();
+    }
+
+    private static String obtenerPasswordConfigurado() {
+        if (Configuracion.password == null || Configuracion.password.isEmpty()) {
+            return PASSWORD;
+        }
+        return Configuracion.password;
     }
 
     private static void imprimirRangoLicencia(Date fechaInicio, Date fechaFin, Date fechaHoy) {

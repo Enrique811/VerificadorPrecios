@@ -31,6 +31,7 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -64,6 +65,8 @@ public class ConfiguracionWindow extends JDialog {
     private JComboBox<String> comboImpresora;
     private JTextField campoInformacion;
     private JTextField campoIpEmpresa;
+    private JTextField campoDb;
+    private JPasswordField campoPassword;
     private JComboBox<String> comboReporte;
 
     private final VentanaInicio ownerFrame;
@@ -117,7 +120,7 @@ public class ConfiguracionWindow extends JDialog {
         titulo.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 24));
         titulo.setForeground(COLOR_TITULO);
 
-        JLabel subtitulo = new JLabel("<html>Administra ambiente, licencia, impresora e IP del servidor.<br>"
+        JLabel subtitulo = new JLabel("<html>Administra ambiente, licencia, impresora, IP y acceso a la base de datos.<br>"
                 + "Archivo: " + ConfigManager.getConfigPath() + "</html>");
         subtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitulo.setForeground(COLOR_TEXTO);
@@ -191,6 +194,14 @@ public class ConfiguracionWindow extends JDialog {
 
         campoIpEmpresa = crearTextField();
         tarjeta.add(crearCampoFormulario("IP Empresa", campoIpEmpresa));
+        tarjeta.add(javax.swing.Box.createVerticalStrut(10));
+
+        campoDb = crearTextField();
+        tarjeta.add(crearCampoFormulario("DB (Usuario)", campoDb));
+        tarjeta.add(javax.swing.Box.createVerticalStrut(10));
+
+        campoPassword = crearPasswordField();
+        tarjeta.add(crearCampoFormulario("Password", campoPassword));
 
         return tarjeta;
     }
@@ -255,6 +266,18 @@ public class ConfiguracionWindow extends JDialog {
         return textArea;
     }
 
+    private JPasswordField crearPasswordField() {
+        JPasswordField passwordField = new JPasswordField();
+        passwordField.setColumns(24);
+        passwordField.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        passwordField.setForeground(COLOR_TITULO);
+        passwordField.setEchoChar('*');
+        passwordField.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedBorder(COLOR_BORDE, 18),
+                new EmptyBorder(9, 12, 9, 12)));
+        return passwordField;
+    }
+
     private JScrollPane crearScrollAreaCampo(JTextArea textArea) {
         JScrollPane scrollPane = new JScrollPane(textArea);
         scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -316,6 +339,8 @@ public class ConfiguracionWindow extends JDialog {
             actualizarFechasLicencia();
             campoInformacion.setText(properties.getProperty("informacion", ""));
             campoIpEmpresa.setText(properties.getProperty("ipEmpresa", ""));
+            campoDb.setText(properties.getProperty("db", ConfigManager.DEFAULT_DB));
+            campoPassword.setText(properties.getProperty("password", ConfigManager.DEFAULT_PASSWORD));
             cargarImpresoras(properties.getProperty("impresora", ""));
             cargarReportes(properties.getProperty("reporte", ""));
         } catch (IOException ex) {
@@ -395,6 +420,8 @@ public class ConfiguracionWindow extends JDialog {
     private void guardarConfiguracion() {
         String clave = campoClave.getText().trim();
         String ipEmpresa = campoIpEmpresa.getText().trim();
+        String db = campoDb.getText().trim();
+        String password = new String(campoPassword.getPassword());
         String informacion = campoInformacion.getText().trim();
 
         if (clave.isEmpty()) {
@@ -425,6 +452,18 @@ public class ConfiguracionWindow extends JDialog {
             return;
         }
 
+        if (db.isEmpty()) {
+            campoDb.requestFocusInWindow();
+            ToastNotification.showWarning(this, "El usuario DB no puede estar vac\u00edo", 2000);
+            return;
+        }
+
+        if (password.trim().isEmpty()) {
+            campoPassword.requestFocusInWindow();
+            ToastNotification.showWarning(this, "El password no puede estar vac\u00edo", 2000);
+            return;
+        }
+
         try {
             ItemAmbiente ambienteSeleccionado = (ItemAmbiente) comboAmbiente.getSelectedItem();
             ItemFormatoPrecio formatoSeleccionado = (ItemFormatoPrecio) comboFormatoPrecio.getSelectedItem();
@@ -441,6 +480,8 @@ public class ConfiguracionWindow extends JDialog {
                     impresora,
                     informacion,
                     ipEmpresa,
+                    db,
+                    password,
                     formatoSeleccionado != null ? formatoSeleccionado.codigo : "CO",
                     reporte);
 
