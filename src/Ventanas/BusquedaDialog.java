@@ -39,6 +39,10 @@ import javax.swing.table.DefaultTableModel;
 
 public class BusquedaDialog extends JDialog {
 
+    private static final Dimension DIALOG_SIZE = new Dimension(980, 720);
+    private static final Dimension MIN_DIALOG_SIZE = new Dimension(860, 520);
+    private static final int OWNER_MARGIN = 40;
+
     public static final String[] TITULO = {"C\u00f3digo barras", "Descripci\u00f3n", "Precio", "Existencia"};
 
     public static DefaultTableModel modelo = new DefaultTableModel(new Object[][]{}, TITULO) {
@@ -75,7 +79,7 @@ public class BusquedaDialog extends JDialog {
         setTitle("Buscar productos");
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setUndecorated(true);
-        setPreferredSize(new Dimension(980, 720));
+        setResizable(false);
 
         RoundedPanel panelPrincipal = new RoundedPanel(30, Color.WHITE);
         panelPrincipal.setLayout(new BorderLayout(18, 18));
@@ -88,7 +92,29 @@ public class BusquedaDialog extends JDialog {
         panelPrincipal.add(crearPie(), BorderLayout.SOUTH);
 
         setContentPane(panelPrincipal);
+        aplicarTamanoDialogo();
         pack();
+    }
+
+    private void aplicarTamanoDialogo() {
+        Dimension size = calcularTamanoDialogo();
+        setPreferredSize(size);
+        setMinimumSize(size);
+        setMaximumSize(size);
+        setSize(size);
+    }
+
+    private Dimension calcularTamanoDialogo() {
+        Dimension size = new Dimension(DIALOG_SIZE);
+        if (ownerFrame != null) {
+            int widthDisponible = Math.max(MIN_DIALOG_SIZE.width, ownerFrame.getWidth() - OWNER_MARGIN);
+            int heightDisponible = Math.max(MIN_DIALOG_SIZE.height, ownerFrame.getHeight() - OWNER_MARGIN);
+            size.width = Math.min(size.width, widthDisponible);
+            size.height = Math.min(size.height, heightDisponible);
+        }
+        size.width = Math.max(size.width, MIN_DIALOG_SIZE.width);
+        size.height = Math.max(size.height, MIN_DIALOG_SIZE.height);
+        return size;
     }
 
     private JPanel crearEncabezado() {
@@ -246,6 +272,7 @@ public class BusquedaDialog extends JDialog {
     @Override
     public void setVisible(boolean b) {
         if (b) {
+            aplicarTamanoDialogo();
             mostrarOverlay();
             if (ownerFrame != null) {
                 setLocationRelativeTo(ownerFrame);
