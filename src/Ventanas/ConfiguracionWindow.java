@@ -4,6 +4,7 @@ import Metodos.ConfigManager;
 import Metodos.Configuracion;
 import Metodos.PrinterUtils;
 import Metodos.ReporteManager;
+import static SQL.SQLFechaHora.obtenerFechayHoraActualDelServidorDate;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -381,7 +382,7 @@ public class ConfiguracionWindow extends JDialog {
     }
 
     private void guardarConfiguracion() {
-        String clave = campoClave.getText().trim();
+        String clave = normalizarClaveLicencia(campoClave.getText());
 
         if (clave.isEmpty()) {
             campoClave.requestFocusInWindow();
@@ -392,7 +393,7 @@ public class ConfiguracionWindow extends JDialog {
         if (!licenciaDesencriptaCorrectamente(clave)) {
             campoClave.requestFocusInWindow();
             ToastNotification.showWarning(this,
-                    "La clave no es v\u00e1lida. No se pudieron desencriptar fecha inicio y fecha fin",
+                    "La clave no es v\u00e1lida",
                     2500);
             return;
         }
@@ -400,12 +401,13 @@ public class ConfiguracionWindow extends JDialog {
         if (!licenciaEstaVigente(clave)) {
             campoClave.requestFocusInWindow();
             ToastNotification.showWarning(this,
-                    "La licencia est\u00e1 expirada o fuera del rango permitido",
+                    "La licencia est\u00e1 expirada o no se pudo obtener la fecha del servidor Firebird",
                     2500);
             return;
         }
 
         try {
+            campoClave.setText(clave);
             ItemAmbiente ambienteSeleccionado = (ItemAmbiente) comboAmbiente.getSelectedItem();
             ItemFormatoPrecio formatoSeleccionado = (ItemFormatoPrecio) comboFormatoPrecio.getSelectedItem();
             String impresora = comboImpresora.isEnabled() && comboImpresora.getSelectedItem() != null
@@ -479,7 +481,7 @@ public class ConfiguracionWindow extends JDialog {
     }
 
     private void actualizarFechasLicencia() {
-        Date[] fechas = obtenerFechasLicencia(campoClave.getText().trim());
+        Date[] fechas = obtenerFechasLicencia(normalizarClaveLicencia(campoClave.getText()));
         SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         if (fechas == null) {
@@ -503,7 +505,10 @@ public class ConfiguracionWindow extends JDialog {
             return false;
         }
 
-        Date fechaActual = new Date();
+        Date fechaActual = obtenerFechayHoraActualDelServidorDate();
+        if (fechaActual == null) {
+            return false;
+        }
         return (fechaActual.after(fechas[0]) || fechaActual.equals(fechas[0]))
                 && (fechaActual.before(fechas[1]) || fechaActual.equals(fechas[1]));
     }
@@ -521,6 +526,17 @@ public class ConfiguracionWindow extends JDialog {
         } catch (Exception ex) {
             return null;
         }
+    }
+
+    private String normalizarClaveLicencia(String valor) {
+        if (valor == null) {
+            return "";
+        }
+
+        String claveNormalizada = valor.trim();
+        claveNormalizada = claveNormalizada.replace("\\:", ":");
+        claveNormalizada = claveNormalizada.replace("\\=", "=");
+        return claveNormalizada;
     }
 
     private static final class ItemAmbiente {

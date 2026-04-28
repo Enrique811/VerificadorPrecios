@@ -60,8 +60,6 @@ public class Conexion {
     }
 
     public static boolean tieneLicenciavalida() {
-        Date fechaHoySistema = new Date();
-
         if (Configuracion.clave == null || Configuracion.clave.trim().isEmpty()) {
             JOptionPane.showMessageDialog(null, LICENSE_MISSING_MESSAGE);
             return false;
@@ -70,13 +68,6 @@ public class Conexion {
         try {
             SecretKey secretKey = generateFixedSecretKey(Configuracion.key);
             Date[] decryptedDates = decryptDates(Configuracion.clave, secretKey);
-
-            boolean licenciaVigenteSistema = isFechaDentroDelRango(fechaHoySistema, decryptedDates[0], decryptedDates[1]);
-
-            if (!licenciaVigenteSistema) {
-                mostrarErrorFatal(LICENSE_EXPIRED_MESSAGE + Configuracion.rutaEmpresa);
-                System.exit(0);
-            }
 
             Date fechaHoyServidor = obtenerFechayHoraActualDelServidorDate();
             boolean licenciaVigenteServidor = fechaHoyServidor != null
@@ -87,7 +78,7 @@ public class Conexion {
                 System.exit(0);
             }
 
-            imprimirRangoLicencia(decryptedDates[0], decryptedDates[1], fechaHoySistema);
+            imprimirRangoLicencia(decryptedDates[0], decryptedDates[1], fechaHoyServidor);
             return true;
         } catch (Exception ex) {
             mostrarErrorFatal(LICENSE_READ_ERROR_MESSAGE);
