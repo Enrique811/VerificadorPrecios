@@ -7,12 +7,25 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Base64;
 import java.util.Properties;
 
 public final class ConfigManager {
 
     private static final String CONFIG_PATH = System.getProperty("user.dir") + "/configuracion.properties";
+    private static final String DEFAULT_CONFIG_CONTENT = "# Base configuration\n"
+            + "ambiente=YQ\\=\\=\n"
+            + "clave=\n"
+            + "formatoPrecio=TVg\\=\\=\n"
+            + "impresora=\n"
+            + "informacion=\n"
+            + "ipEmpresa=bG9jYWxob3N0\n"
+            + "password=bWFzdGVya2V5\n"
+            + "reporte=\n"
+            + "rutaEmpresa=\n"
+            + "usuario=U1lTREJB\n";
     public static final String DEFAULT_USUARIO = "SYSDBA";
     public static final String DEFAULT_PASSWORD = "masterkey";
     private final Properties properties = new Properties();
@@ -22,6 +35,7 @@ public final class ConfigManager {
     }
 
     public static Properties loadProperties() throws IOException {
+        ensureConfigFileExists();
         Properties rawProperties = loadRawProperties();
         Properties decodedProperties = new Properties();
         for (String key : rawProperties.stringPropertyNames()) {
@@ -32,6 +46,7 @@ public final class ConfigManager {
     }
 
     public static void saveInformation(String informacion) throws IOException {
+        ensureConfigFileExists();
         Properties current = loadProperties();
         current.setProperty("informacion", informacion);
         storeProperties(current);
@@ -63,9 +78,15 @@ public final class ConfigManager {
     public void reload() {
         properties.clear();
         if (!exists()) {
-            return;
+            try {
+                createDefaultConfigFile();
+            } catch (IOException ex) {
+                properties.clear();
+                return;
+            }
         }
         try {
+            ensureWritableConfigFile();
             properties.putAll(loadProperties());
             migrateLegacyKeys(properties);
         } catch (IOException ex) {
@@ -75,6 +96,7 @@ public final class ConfigManager {
 
     public static void saveConfiguration(String ambiente, String clave, String impresora,
             String formatoPrecio, String reporte) throws IOException {
+        ensureConfigFileExists();
         Properties current = loadProperties();
         current.setProperty("ambiente", ambiente);
         current.setProperty("clave", clave);
@@ -91,6 +113,31 @@ public final class ConfigManager {
 
     public static String getConfigPath() {
         return CONFIG_PATH;
+    }
+
+    private static void ensureConfigFileExists() throws IOException {
+        if (!existsFile()) {
+            createDefaultConfigFile();
+        } else {
+            ensureWritableConfigFile();
+        }
+    }
+
+    private static void createDefaultConfigFile() throws IOException {
+        Path path = new File(CONFIG_PATH).toPath();
+        Files.writeString(path, DEFAULT_CONFIG_CONTENT, StandardCharsets.UTF_8);
+        ensureWritableConfigFile();
+    }
+
+    private static void ensureWritableConfigFile() {
+        File file = new File(CONFIG_PATH);
+        file.setReadable(true, false);
+        file.setWritable(true, false);
+        file.setExecutable(false, false);
+    }
+
+    private static boolean existsFile() {
+        return new File(CONFIG_PATH).exists();
     }
 
     private static Properties loadRawProperties() throws IOException {

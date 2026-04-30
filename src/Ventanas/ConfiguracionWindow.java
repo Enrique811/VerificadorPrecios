@@ -2,9 +2,10 @@ package Ventanas;
 
 import Metodos.ConfigManager;
 import Metodos.Configuracion;
+import Metodos.LicenseJsonValidator;
+import Metodos.LicenseValidationResult;
 import Metodos.PrinterUtils;
 import Metodos.ReporteManager;
-import static SQL.SQLFechaHora.obtenerFechayHoraActualDelServidorDate;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -16,19 +17,19 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.RenderingHints;
+import java.io.File;
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-import javax.crypto.SecretKey;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -42,6 +43,7 @@ import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class ConfiguracionWindow extends JDialog {
 
@@ -60,8 +62,10 @@ public class ConfiguracionWindow extends JDialog {
     private JComboBox<ItemAmbiente> comboAmbiente;
     private JComboBox<ItemFormatoPrecio> comboFormatoPrecio;
     private JTextArea campoClave;
+    private JLabel etiquetaUuidLicencia;
     private JLabel etiquetaFechaInicio;
     private JLabel etiquetaFechaFin;
+    private JLabel etiquetaArchivoLicencia;
     private JComboBox<String> comboImpresora;
     private JComboBox<String> comboReporte;
 
@@ -171,9 +175,10 @@ public class ConfiguracionWindow extends JDialog {
         tarjeta.add(javax.swing.Box.createVerticalStrut(10));
 
         campoClave = crearTextArea();
-        tarjeta.add(crearCampoFormulario("Clave (Licencia)", crearScrollAreaCampo(campoClave)));
+        campoClave.setVisible(false);
+        tarjeta.add(crearCampoFormulario("Licencia", crearPanelLicencia()));
         tarjeta.add(javax.swing.Box.createVerticalStrut(6));
-        tarjeta.add(crearPanelFechasLicencia());
+        tarjeta.add(crearPanelDatosLicencia());
         tarjeta.add(javax.swing.Box.createVerticalStrut(10));
 
         comboImpresora = crearComboBox();
@@ -260,6 +265,17 @@ public class ConfiguracionWindow extends JDialog {
         return scrollPane;
     }
 
+    private JPanel crearPanelLicencia() {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JButton botonImportar = crearBoton("Importar .lic", new Color(239, 246, 255), COLOR_TITULO);
+        botonImportar.addActionListener(e -> importarLicenciaDesdeArchivo());
+        panel.add(botonImportar);
+        return panel;
+    }
+
     private void configurarComboBox(JComboBox<?> comboBox) {
         comboBox.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         comboBox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -303,7 +319,7 @@ public class ConfiguracionWindow extends JDialog {
             Properties properties = ConfigManager.loadProperties();
             seleccionarAmbiente(properties.getProperty("ambiente", "a"));
             seleccionarFormatoPrecio(properties.getProperty("formatoPrecio", "CO"));
-            campoClave.setText(properties.getProperty("clave", ""));
+            cargarLicenciaGuardada(properties.getProperty("clave", ""));
             actualizarFechasLicencia();
             cargarImpresoras(properties.getProperty("impresora", ""));
             cargarReportes(properties.getProperty("reporte", ""));
@@ -382,27 +398,21 @@ public class ConfiguracionWindow extends JDialog {
     }
 
     private void guardarConfiguracion() {
-        String clave = normalizarClaveLicencia(campoClave.getText());
+        String clave = normalizarLicenciaJson(campoClave.getText());
 
         if (clave.isEmpty()) {
             campoClave.requestFocusInWindow();
-            ToastNotification.showWarning(this, "La clave no puede estar vac\u00eda", 2000);
+            ToastNotification.showWarning(this, "La licencia no puede estar vac\u00eda", 2000);
             return;
         }
 
-        if (!licenciaDesencriptaCorrectamente(clave)) {
+        LicenseValidationResult validationResult = LicenseJsonValidator.validate(clave);
+        if (!validationResult.isLicenciaValida()) {
             campoClave.requestFocusInWindow();
-            ToastNotification.showWarning(this,
-                    "La clave no es v\u00e1lida",
-                    2500);
-            return;
-        }
-
-        if (!licenciaEstaVigente(clave)) {
-            campoClave.requestFocusInWindow();
-            ToastNotification.showWarning(this,
-                    "La licencia est\u00e1 expirada o no se pudo obtener la fecha del servidor Firebird",
-                    2500);
+            JOptionPane.showMessageDialog(this,
+                    validationResult.buildSummary(),
+                    "Licencia no valida",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -439,15 +449,21 @@ public class ConfiguracionWindow extends JDialog {
         }
     }
 
-    private JPanel crearPanelFechasLicencia() {
+    private JPanel crearPanelDatosLicencia() {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        etiquetaFechaInicio = crearEtiquetaLicencia("Fecha inicio: " + TEXTO_FECHA_NO_DISPONIBLE);
-        etiquetaFechaFin = crearEtiquetaLicencia("Fecha fin: " + TEXTO_FECHA_NO_DISPONIBLE);
+        etiquetaArchivoLicencia = crearEtiquetaLicencia("Archivo importado: " + TEXTO_FECHA_NO_DISPONIBLE);
+        etiquetaUuidLicencia = crearEtiquetaLicencia("UUID licencia: " + TEXTO_FECHA_NO_DISPONIBLE);
+        etiquetaFechaInicio = crearEtiquetaLicencia("Vigencia desde: " + TEXTO_FECHA_NO_DISPONIBLE);
+        etiquetaFechaFin = crearEtiquetaLicencia("Vigencia hasta: " + TEXTO_FECHA_NO_DISPONIBLE);
 
+        panel.add(etiquetaArchivoLicencia);
+        panel.add(javax.swing.Box.createVerticalStrut(2));
+        panel.add(etiquetaUuidLicencia);
+        panel.add(javax.swing.Box.createVerticalStrut(2));
         panel.add(etiquetaFechaInicio);
         panel.add(javax.swing.Box.createVerticalStrut(2));
         panel.add(etiquetaFechaFin);
@@ -481,62 +497,113 @@ public class ConfiguracionWindow extends JDialog {
     }
 
     private void actualizarFechasLicencia() {
-        Date[] fechas = obtenerFechasLicencia(normalizarClaveLicencia(campoClave.getText()));
+        String licenciaJson = normalizarLicenciaJson(campoClave.getText());
+        String uuid = LicenseJsonValidator.extractUuid(licenciaJson);
+        Date[] fechas = obtenerFechasLicencia(licenciaJson);
         SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        if (fechas == null) {
-            etiquetaFechaInicio.setText("Fecha inicio: " + TEXTO_FECHA_NO_DISPONIBLE);
-            etiquetaFechaFin.setText("Fecha fin: " + TEXTO_FECHA_NO_DISPONIBLE);
+        if (uuid == null || fechas == null) {
+            if (etiquetaArchivoLicencia != null && etiquetaArchivoLicencia.getText().trim().isEmpty()) {
+                etiquetaArchivoLicencia.setText("Archivo importado: " + TEXTO_FECHA_NO_DISPONIBLE);
+            }
+            etiquetaUuidLicencia.setText("UUID licencia: " + TEXTO_FECHA_NO_DISPONIBLE);
+            etiquetaFechaInicio.setText("Vigencia desde: " + TEXTO_FECHA_NO_DISPONIBLE);
+            etiquetaFechaFin.setText("Vigencia hasta: " + TEXTO_FECHA_NO_DISPONIBLE);
             return;
         }
 
-        etiquetaFechaInicio.setText("Fecha inicio: " + formato.format(fechas[0]));
-        etiquetaFechaFin.setText("Fecha fin: " + formato.format(fechas[1]));
+        etiquetaUuidLicencia.setText("UUID licencia: " + uuid);
+        etiquetaFechaInicio.setText("Vigencia desde: " + formato.format(fechas[0]));
+        etiquetaFechaFin.setText("Vigencia hasta: " + formato.format(fechas[1]));
     }
 
-    private boolean licenciaDesencriptaCorrectamente(String claveEncriptada) {
-        Date[] fechas = obtenerFechasLicencia(claveEncriptada);
-        return fechas != null && fechas.length == 2 && fechas[0] != null && fechas[1] != null;
-    }
-
-    private boolean licenciaEstaVigente(String claveEncriptada) {
-        Date[] fechas = obtenerFechasLicencia(claveEncriptada);
-        if (fechas == null || fechas.length != 2 || fechas[0] == null || fechas[1] == null) {
-            return false;
-        }
-
-        Date fechaActual = obtenerFechayHoraActualDelServidorDate();
-        if (fechaActual == null) {
-            return false;
-        }
-        return (fechaActual.after(fechas[0]) || fechaActual.equals(fechas[0]))
-                && (fechaActual.before(fechas[1]) || fechaActual.equals(fechas[1]));
-    }
-
-    private Date[] obtenerFechasLicencia(String claveEncriptada) {
-        if (claveEncriptada == null || claveEncriptada.isEmpty()) {
+    private Date[] obtenerFechasLicencia(String licenciaJson) {
+        if (licenciaJson == null || licenciaJson.isEmpty()) {
             return null;
         }
 
-        try {
-            SecretKey secretKey = Configuracion.generateFixedSecretKey(Configuracion.key);
-            return Configuracion.decryptDates(claveEncriptada, secretKey);
-        } catch (NoSuchAlgorithmException ex) {
-            return null;
-        } catch (Exception ex) {
-            return null;
-        }
+        return LicenseJsonValidator.extractDates(licenciaJson);
     }
 
-    private String normalizarClaveLicencia(String valor) {
+    private String normalizarLicenciaJson(String valor) {
         if (valor == null) {
             return "";
         }
 
-        String claveNormalizada = valor.trim();
-        claveNormalizada = claveNormalizada.replace("\\:", ":");
-        claveNormalizada = claveNormalizada.replace("\\=", "=");
-        return claveNormalizada;
+        return valor.trim();
+    }
+
+    private void importarLicenciaDesdeArchivo() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Seleccionar licencia");
+        fileChooser.setAcceptAllFileFilterUsed(false);
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Licencias (*.lic)", "lic"));
+
+        int result = fileChooser.showOpenDialog(this);
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File selectedFile = fileChooser.getSelectedFile();
+        if (selectedFile == null) {
+            return;
+        }
+
+        try {
+            String licenciaJson = LicenseJsonValidator.readLicenseContentFromFile(selectedFile.getAbsolutePath());
+            if (licenciaJson == null || licenciaJson.trim().isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "El archivo seleccionado no contiene una licencia valida.",
+                        "Importar licencia",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            campoClave.setText(licenciaJson.trim());
+            etiquetaArchivoLicencia.setText("Archivo importado: " + selectedFile.getName());
+            actualizarFechasLicencia();
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo leer el archivo de licencia.\n" + ex.getMessage(),
+                    "Importar licencia",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void cargarLicenciaGuardada(String valorGuardado) {
+        String licencia = normalizarLicenciaJson(valorGuardado);
+        if (licencia.isEmpty()) {
+            campoClave.setText("");
+            if (etiquetaArchivoLicencia != null) {
+                etiquetaArchivoLicencia.setText("Archivo importado: " + TEXTO_FECHA_NO_DISPONIBLE);
+            }
+            return;
+        }
+
+        if (licencia.startsWith("{")) {
+            campoClave.setText(licencia);
+            if (etiquetaArchivoLicencia != null) {
+                etiquetaArchivoLicencia.setText("Archivo importado: configuracion.properties");
+            }
+            return;
+        }
+
+        try {
+            String contenido = LicenseJsonValidator.readLicenseContentFromFile(licencia);
+            if (contenido != null && !contenido.trim().isEmpty()) {
+                campoClave.setText(contenido.trim());
+                if (etiquetaArchivoLicencia != null) {
+                    etiquetaArchivoLicencia.setText("Archivo importado: " + new File(licencia).getName());
+                }
+                return;
+            }
+        } catch (IOException ex) {
+        }
+
+        campoClave.setText(licencia);
+        if (etiquetaArchivoLicencia != null) {
+            etiquetaArchivoLicencia.setText("Archivo importado: " + TEXTO_FECHA_NO_DISPONIBLE);
+        }
     }
 
     private static final class ItemAmbiente {

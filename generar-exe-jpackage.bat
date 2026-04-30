@@ -122,7 +122,7 @@ echo Generando instalador...
  --name "VerificadorPrecios" ^
  --main-jar "VerificadorPrecios.jar" ^
  --main-class "App.Main" ^
- --type msi ^
+ --type exe ^
  --runtime-image "runtime" ^
  --install-dir "VerificadorPrecios" ^
  --vendor "edelangel" ^

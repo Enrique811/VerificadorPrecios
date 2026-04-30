@@ -2,19 +2,14 @@ package Conexion;
 
 import Metodos.ConfigManager;
 import Metodos.Configuracion;
-import static Metodos.Configuracion.decryptDates;
-import static SQL.SQLFechaHora.obtenerFechayHoraActualDelServidorDate;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import Metodos.LicenseJsonValidator;
+import Metodos.LicenseValidationResult;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
@@ -25,9 +20,6 @@ public class Conexion {
     private static final String PASSWORD = "masterkey";
     private static final String CHARSET_SUFFIX = "?lc_ctype=ISO8859_1";
     private static final String CONNECTION_ERROR_MESSAGE = "ERROR AL CONECTARSE CON LA BASE DE DATOS ... EL PROGRAMA FINALIZARA, Y EJECUTE NUEVAMENTE   ";
-    private static final String LICENSE_EXPIRED_MESSAGE = "LA LICENCIA A EXPIRADO O VERIFICAR CONFIGURACION DE FECHA Y HORA";
-    private static final String LICENSE_READ_ERROR_MESSAGE = "ERROR AL LEER LICENCIA";
-    private static final String LICENSE_MISSING_MESSAGE = "CAPTURE LA LICENCIA PRIMERO EN CONFIGURACION";
 
     public static String driver = DRIVER;
     public static String url = null;
@@ -61,30 +53,26 @@ public class Conexion {
 
     public static boolean tieneLicenciavalida() {
         if (Configuracion.clave == null || Configuracion.clave.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(null, LICENSE_MISSING_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Importe o capture la licencia JSON en configuracion.");
             return false;
         }
 
-        try {
-            SecretKey secretKey = generateFixedSecretKey(Configuracion.key);
-            Date[] decryptedDates = decryptDates(Configuracion.clave, secretKey);
-
-            Date fechaHoyServidor = obtenerFechayHoraActualDelServidorDate();
-            boolean licenciaVigenteServidor = fechaHoyServidor != null
-                    && isFechaDentroDelRango(fechaHoyServidor, decryptedDates[0], decryptedDates[1]);
-
-            if (!licenciaVigenteServidor) {
-                mostrarErrorFatal(LICENSE_EXPIRED_MESSAGE + Configuracion.rutaEmpresa);
-                System.exit(0);
-            }
-
-            imprimirRangoLicencia(decryptedDates[0], decryptedDates[1], fechaHoyServidor);
-            return true;
-        } catch (Exception ex) {
-            mostrarErrorFatal(LICENSE_READ_ERROR_MESSAGE);
+        LicenseValidationResult result = LicenseJsonValidator.validate(Configuracion.clave);
+        imprimirDiagnosticoLicencia(result);
+        if (!result.isLicenciaValida()) {
+            mostrarErrorFatal(result.buildSummary());
             System.exit(0);
             return false;
         }
+
+        Date fechaHoyServidor = result.getFechaServidor();
+        if (!isFechaDentroDelRango(fechaHoyServidor, result.getFechaInicio(), result.getFechaFin())) {
+            mostrarErrorFatal(result.buildSummary());
+            System.exit(0);
+            return false;
+        }
+
+        return true;
     }
 
     public static boolean isFechaDentroDelRango(Date fechaActual, Date fechaInicio, Date fechaFin) {
@@ -94,12 +82,6 @@ public class Conexion {
 
         return (fechaActual.after(fechaInicio) || fechaActual.equals(fechaInicio))
                 && (fechaActual.before(fechaFin) || fechaActual.equals(fechaFin));
-    }
-
-    public static SecretKey generateFixedSecretKey(String clave) throws NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] claveBytes = digest.digest(clave.getBytes());
-        return new SecretKeySpec(claveBytes, "AES");
     }
 
     public static void DesconectarBDEmpresa() {
@@ -171,11 +153,11 @@ public class Conexion {
         return Configuracion.password;
     }
 
-    private static void imprimirRangoLicencia(Date fechaInicio, Date fechaFin, Date fechaHoy) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        System.out.println("Fecha de inicio desencriptada: " + dateFormat.format(fechaInicio));
-        System.out.println("Fecha de fin desencriptada: " + dateFormat.format(fechaFin));
-        System.out.println(dateFormat.format(fechaHoy));
+    private static void imprimirDiagnosticoLicencia(LicenseValidationResult result) {
+        if (result == null) {
+            return;
+        }
+        System.out.println(result.buildSummary());
     }
 
     private static void mostrarErrorFatal(String mensaje) {

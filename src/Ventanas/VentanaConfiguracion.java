@@ -12,8 +12,13 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -46,7 +51,9 @@ public class VentanaConfiguracion extends JFrame {
     private JTextField campoUsuario;
     private JPasswordField campoPassword;
     private JTextField campoRutaEmpresa;
+    private JTextField campoUuidEquipo;
     private JButton botonRutaEmpresa;
+    private JButton botonCopiarUuid;
 
     public VentanaConfiguracion() {
         initComponents();
@@ -119,39 +126,52 @@ public class VentanaConfiguracion extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 0;
 
-        JLabel etiquetaIp = crearEtiquetaCampo("ipEmpresa");
-        JLabel etiquetaUsuario = crearEtiquetaCampo("usuario");
-        JLabel etiquetaPassword = crearEtiquetaCampo("password");
-        JLabel etiquetaRuta = crearEtiquetaCampo("rutaEmpresa");
+        JLabel etiquetaRuta = crearEtiquetaCampo("Base de datos");
+        JLabel etiquetaIp = crearEtiquetaCampo("IP");
+        JLabel etiquetaUsuario = crearEtiquetaCampo("Usuario");
+        JLabel etiquetaPassword = crearEtiquetaCampo("Password");
+        JLabel etiquetaUuid = crearEtiquetaCampo("UUID del equipo");
 
+        panel.add(etiquetaRuta, gbc);
+        gbc.gridy++;
         panel.add(etiquetaIp, gbc);
         gbc.gridy++;
         panel.add(etiquetaUsuario, gbc);
         gbc.gridy++;
         panel.add(etiquetaPassword, gbc);
         gbc.gridy++;
-        panel.add(etiquetaRuta, gbc);
+        panel.add(etiquetaUuid, gbc);
 
         campoIpEmpresa = new JTextField(28);
         campoUsuario = new JTextField(28);
         campoPassword = new JPasswordField(28);
         campoRutaEmpresa = new JTextField(28);
+        campoUuidEquipo = new JTextField(28);
+        campoUuidEquipo.setEditable(false);
+        campoUuidEquipo.setBackground(Color.WHITE);
+        botonCopiarUuid = new JButton("Copiar");
+        botonCopiarUuid.addActionListener(e -> copiarUuidEquipo());
         botonRutaEmpresa = new JButton("Seleccionar");
         botonRutaEmpresa.addActionListener(e -> seleccionarRutaEmpresa());
 
         gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.weightx = 1;
+        JPanel contenedorRuta = new JPanel(new BorderLayout(8, 0));
+        contenedorRuta.add(campoRutaEmpresa, BorderLayout.CENTER);
+        contenedorRuta.add(botonRutaEmpresa, BorderLayout.EAST);
+        panel.add(contenedorRuta, gbc);
+        gbc.gridy++;
         panel.add(campoIpEmpresa, gbc);
         gbc.gridy++;
         panel.add(campoUsuario, gbc);
         gbc.gridy++;
         panel.add(campoPassword, gbc);
         gbc.gridy++;
-        JPanel contenedorRuta = new JPanel(new BorderLayout(8, 0));
-        contenedorRuta.add(campoRutaEmpresa, BorderLayout.CENTER);
-        contenedorRuta.add(botonRutaEmpresa, BorderLayout.EAST);
-        panel.add(contenedorRuta, gbc);
+        JPanel contenedorUuid = new JPanel(new BorderLayout(8, 0));
+        contenedorUuid.add(campoUuidEquipo, BorderLayout.CENTER);
+        contenedorUuid.add(botonCopiarUuid, BorderLayout.EAST);
+        panel.add(contenedorUuid, gbc);
 
         tarjeta.add(panel);
         return tarjeta;
@@ -178,6 +198,7 @@ public class VentanaConfiguracion extends JFrame {
         campoUsuario.setText(config.get("usuario"));
         campoPassword.setText(config.get("password"));
         campoRutaEmpresa.setText(config.get("rutaEmpresa"));
+        campoUuidEquipo.setText(obtenerUuidEquipoLocal());
     }
 
     private void guardarConfiguracion() {
@@ -246,6 +267,80 @@ public class VentanaConfiguracion extends JFrame {
         if (resultado == JFileChooser.APPROVE_OPTION && chooser.getSelectedFile() != null) {
             campoRutaEmpresa.setText(chooser.getSelectedFile().getAbsolutePath());
         }
+    }
+
+    private void copiarUuidEquipo() {
+        String uuid = campoUuidEquipo.getText().trim();
+        if (uuid.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo obtener el UUID del equipo.",
+                    "UUID",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        StringSelection seleccion = new StringSelection(uuid);
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(seleccion, null);
+        JOptionPane.showMessageDialog(this,
+                "UUID copiado al portapapeles.",
+                "UUID",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private String obtenerUuidEquipoLocal() {
+        String uuid = ejecutarComandoUuid(new String[]{"wmic", "csproduct", "get", "uuid"});
+        if (esUuidValido(uuid)) {
+            return uuid;
+        }
+
+        uuid = ejecutarComandoUuid(new String[]{
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "(Get-CimInstance Win32_ComputerSystemProduct).UUID"
+        });
+        if (esUuidValido(uuid)) {
+            return uuid;
+        }
+
+        return "";
+    }
+
+    private String ejecutarComandoUuid(String[] command) {
+        Process process = null;
+        try {
+            process = new ProcessBuilder(command).redirectErrorStream(true).start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
+            try {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String valor = normalizarUuid(line);
+                    if (esUuidValido(valor)) {
+                        return valor;
+                    }
+                }
+            } finally {
+                reader.close();
+            }
+        } catch (IOException ex) {
+            return "";
+        } finally {
+            if (process != null) {
+                process.destroy();
+            }
+        }
+        return "";
+    }
+
+    private String normalizarUuid(String valor) {
+        if (valor == null) {
+            return "";
+        }
+        return valor.trim().toUpperCase();
+    }
+
+    private boolean esUuidValido(String valor) {
+        return valor != null && valor.matches("(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
     }
 
     private JLabel crearEtiquetaCampo(String texto) {
