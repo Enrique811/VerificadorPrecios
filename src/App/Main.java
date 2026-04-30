@@ -4,8 +4,11 @@ import Conexion.Conexion;
 import Metodos.ConfigManager;
 import Ventanas.VentanaConfiguracion;
 import Ventanas.VentanaInicio;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 
 public final class Main {
 
@@ -24,14 +27,38 @@ public final class Main {
             return;
         }
 
-        if (Conexion.probarConexion(config)) {
-            abrirVentanaInicio();
-            return;
-        }
+        final JDialog loadingDialog = createLoadingDialog();
+        SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() {
+                return Conexion.probarConexion(config);
+            }
 
-        JOptionPane.showMessageDialog(null,
-                "No fue posible conectar con la base de datos. Revise la configuracion.");
-        abrirVentanaConfiguracion();
+            @Override
+            protected void done() {
+                loadingDialog.dispose();
+                boolean conexionExitosa = false;
+                try {
+                    conexionExitosa = get().booleanValue();
+                } catch (Exception ex) {
+                    conexionExitosa = false;
+                }
+
+                if (conexionExitosa) {
+                    abrirVentanaInicio();
+                    return;
+                }
+
+                String detalleError = Conexion.getUltimoErrorConexion();
+                JOptionPane.showMessageDialog(null,
+                        "No fue posible conectar con la base de datos. Revise la configuracion.\n"
+                        + detalleError + "\n"
+                        + "Log: " + Metodos.ConfigManager.getConfigPath().replace("configuracion.properties", "logs\\conexion.log"));
+                abrirVentanaConfiguracion();
+            }
+        };
+        worker.execute();
+        loadingDialog.setVisible(true);
     }
 
     public static void abrirVentanaInicio() {
@@ -40,5 +67,16 @@ public final class Main {
 
     public static void abrirVentanaConfiguracion() {
         new VentanaConfiguracion().setVisible(true);
+    }
+
+    private static JDialog createLoadingDialog() {
+        JDialog dialog = new JDialog();
+        dialog.setTitle("VerificadorPrecios");
+        dialog.setModal(true);
+        dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        dialog.add(new JLabel("Validando configuracion y conexion...", JLabel.CENTER));
+        dialog.setSize(320, 110);
+        dialog.setLocationRelativeTo(null);
+        return dialog;
     }
 }

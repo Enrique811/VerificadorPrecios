@@ -43,7 +43,7 @@ public class Configuracion {
     public static String formatoPrecio;
     public static String reporte;
      
-    private static String url = System.getProperty("user.dir") + "/configuracion.properties";
+    private static String url = ConfigManager.getConfigPath();
     public static String key = "K7m2X9qLp4";
 
     public static void leerArchivoDePropiedades() {

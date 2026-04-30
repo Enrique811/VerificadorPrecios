@@ -31,6 +31,7 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.WindowConstants;
+import javax.swing.SwingWorker;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 
@@ -54,6 +55,7 @@ public class VentanaConfiguracion extends JFrame {
     private JTextField campoUuidEquipo;
     private JButton botonRutaEmpresa;
     private JButton botonCopiarUuid;
+    private JButton botonGuardar;
 
     public VentanaConfiguracion() {
         initComponents();
@@ -184,7 +186,7 @@ public class VentanaConfiguracion extends JFrame {
         JButton botonCancelar = crearBoton("Cancelar", COLOR_GRIS, COLOR_TITULO);
         botonCancelar.addActionListener(e -> dispose());
 
-        JButton botonGuardar = crearBoton("Guardar", new Color(220, 252, 231), COLOR_VERDE);
+        botonGuardar = crearBoton("Guardar", new Color(220, 252, 231), COLOR_VERDE);
         botonGuardar.addActionListener(e -> guardarConfiguracion());
 
         panel.add(botonCancelar);
@@ -215,36 +217,63 @@ public class VentanaConfiguracion extends JFrame {
             return;
         }
 
-        ConfigManager config = new ConfigManager();
-        config.set("ipEmpresa", ipEmpresa);
-        config.set("usuario", usuario);
-        config.set("password", password);
-        config.set("rutaEmpresa", rutaEmpresa);
+        setFormularioHabilitado(false);
 
-        try {
-            config.save();
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this,
-                    "No se pudo guardar la configuracion.\n" + ex.getMessage(),
-                    "Configuracion",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+        SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+            private String saveErrorMessage;
 
-        if (Conexion.probarConexion(config)) {
-            JOptionPane.showMessageDialog(this,
-                    "Conexion exitosa. Se abrira la ventana principal.",
-                    "Configuracion",
-                    JOptionPane.INFORMATION_MESSAGE);
-            dispose();
-            Main.abrirVentanaInicio();
-            return;
-        }
+            @Override
+            protected Boolean doInBackground() {
+                ConfigManager config = new ConfigManager();
+                config.set("ipEmpresa", ipEmpresa);
+                config.set("usuario", usuario);
+                config.set("password", password);
+                config.set("rutaEmpresa", rutaEmpresa);
 
-        JOptionPane.showMessageDialog(this,
-                "La conexion fallo. Verifique ipEmpresa, usuario, password y rutaEmpresa.",
-                "Configuracion",
-                JOptionPane.ERROR_MESSAGE);
+                try {
+                    config.save();
+                } catch (IOException ex) {
+                    saveErrorMessage = ex.getMessage();
+                    return null;
+                }
+
+                return Boolean.valueOf(Conexion.probarConexion(config));
+            }
+
+            @Override
+            protected void done() {
+                setFormularioHabilitado(true);
+                try {
+                    Boolean conexionExitosa = get();
+                    if (conexionExitosa == null) {
+                        JOptionPane.showMessageDialog(VentanaConfiguracion.this,
+                                "No se pudo guardar la configuracion.\n" + saveErrorMessage,
+                                "Configuracion",
+                                JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    if (conexionExitosa.booleanValue()) {
+                        JOptionPane.showMessageDialog(VentanaConfiguracion.this,
+                                "Conexion exitosa. Se abrira la ventana principal.",
+                                "Configuracion",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        dispose();
+                        Main.abrirVentanaInicio();
+                        return;
+                    }
+                } catch (Exception ex) {
+                }
+
+                JOptionPane.showMessageDialog(VentanaConfiguracion.this,
+                        "La configuracion se guardo, pero la conexion fallo.\n"
+                        + "Verifique ipEmpresa, usuario, password y rutaEmpresa.\n"
+                        + Conexion.getUltimoErrorConexion(),
+                        "Configuracion",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        };
+        worker.execute();
     }
 
     private void seleccionarRutaEmpresa() {
@@ -369,6 +398,20 @@ public class VentanaConfiguracion extends JFrame {
                 new RoundedBorder(COLOR_BORDE, 28),
                 new EmptyBorder(16, 16, 16, 16)));
         return tarjeta;
+    }
+
+    private void setFormularioHabilitado(boolean enabled) {
+        campoIpEmpresa.setEnabled(enabled);
+        campoUsuario.setEnabled(enabled);
+        campoPassword.setEnabled(enabled);
+        campoRutaEmpresa.setEnabled(enabled);
+        campoUuidEquipo.setEnabled(false);
+        botonRutaEmpresa.setEnabled(enabled);
+        botonCopiarUuid.setEnabled(enabled);
+        if (botonGuardar != null) {
+            botonGuardar.setEnabled(enabled);
+        }
+        setCursor(enabled ? null : java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.WAIT_CURSOR));
     }
 
     private static final class RoundedPanel extends JPanel {

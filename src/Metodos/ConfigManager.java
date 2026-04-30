@@ -14,7 +14,8 @@ import java.util.Properties;
 
 public final class ConfigManager {
 
-    private static final String CONFIG_PATH = System.getProperty("user.dir") + "/configuracion.properties";
+    private static final String APPDATA_DIR = resolveAppDataDirectory();
+    private static final String CONFIG_PATH = APPDATA_DIR + File.separator + "configuracion.properties";
     private static final String DEFAULT_CONFIG_CONTENT = "# Base configuration\n"
             + "ambiente=YQ\\=\\=\n"
             + "clave=\n"
@@ -79,7 +80,7 @@ public final class ConfigManager {
         properties.clear();
         if (!exists()) {
             try {
-                createDefaultConfigFile();
+                ensureConfigFileExists();
             } catch (IOException ex) {
                 properties.clear();
                 return;
@@ -116,6 +117,7 @@ public final class ConfigManager {
     }
 
     private static void ensureConfigFileExists() throws IOException {
+        ensureConfigDirectoryExists();
         if (!existsFile()) {
             createDefaultConfigFile();
         } else {
@@ -124,6 +126,7 @@ public final class ConfigManager {
     }
 
     private static void createDefaultConfigFile() throws IOException {
+        ensureConfigDirectoryExists();
         Path path = new File(CONFIG_PATH).toPath();
         Files.writeString(path, DEFAULT_CONFIG_CONTENT, StandardCharsets.UTF_8);
         ensureWritableConfigFile();
@@ -138,6 +141,29 @@ public final class ConfigManager {
 
     private static boolean existsFile() {
         return new File(CONFIG_PATH).exists();
+    }
+
+    private static void ensureConfigDirectoryExists() throws IOException {
+        Files.createDirectories(new File(APPDATA_DIR).toPath());
+    }
+
+    private static String resolveAppDataDirectory() {
+        String appData = System.getenv("APPDATA");
+        if (appData != null && !appData.trim().isEmpty()) {
+            return appData + File.separator + "VerificadorPrecios";
+        }
+
+        String userHome = System.getProperty("user.home", "").trim();
+        if (!userHome.isEmpty()) {
+            String osName = System.getProperty("os.name", "").toLowerCase();
+            if (osName.contains("win")) {
+                return userHome + File.separator + "AppData" + File.separator
+                        + "Roaming" + File.separator + "VerificadorPrecios";
+            }
+            return userHome + File.separator + ".verificadorprecios";
+        }
+
+        return System.getProperty("user.dir") + File.separator + "VerificadorPrecios";
     }
 
     private static Properties loadRawProperties() throws IOException {
