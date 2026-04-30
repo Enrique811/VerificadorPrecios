@@ -144,7 +144,7 @@ public class Conexion {
                 try {
                     conexionPrueba.close();
                 } catch (SQLException ex) {
-                    System.err.println("No se pudo cerrar la conexion de prueba: " + ex.getMessage());
+                    System.out.println("No se pudo cerrar la conexion de prueba: " + ex.getMessage());
                 }
             }
         }
@@ -281,7 +281,7 @@ public class Conexion {
                     StandardOpenOption.CREATE,
                     StandardOpenOption.APPEND);
         } catch (IOException ioEx) {
-            System.err.println("No se pudo registrar el error de conexion: " + ioEx.getMessage());
+            System.out.println("No se pudo registrar el error de conexion: " + ioEx.getMessage());
         }
     }
 
@@ -300,7 +300,7 @@ public class Conexion {
                 resultado.close();
             }
         } catch (SQLException e) {
-            System.err.println("No se pudo cerrar ResultSet: " + e.getMessage());
+            System.out.println("No se pudo cerrar ResultSet: " + e.getMessage());
         } finally {
             resultado = null;
         }
@@ -312,7 +312,7 @@ public class Conexion {
                 preparacion.close();
             }
         } catch (SQLException e) {
-            System.err.println("No se pudo cerrar PreparedStatement: " + e.getMessage());
+            System.out.println("No se pudo cerrar PreparedStatement: " + e.getMessage());
         } finally {
             preparacion = null;
         }

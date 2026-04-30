@@ -75,7 +75,7 @@ public class SQLArticulo {
                 controlConsulta = false;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            e.printStackTrace(System.out);
             JOptionPane.showMessageDialog(Conexion.PanelMensaje,
                     "PROBLEMAS....",
                     "SQL, ARTICULO",
@@ -120,7 +120,7 @@ public class SQLArticulo {
                 controlConsulta = false;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            e.printStackTrace(System.out);
             JOptionPane.showMessageDialog(Conexion.PanelMensaje,
                     "PROBLEMAS....",
                     "SQL, ARTICULO",
@@ -161,7 +161,7 @@ public class SQLArticulo {
                 controlConsulta = true;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            e.printStackTrace(System.out);
             JOptionPane.showMessageDialog(Conexion.PanelMensaje,
                     "PROBLEMAS....",
                     "SQL, ARTICULO",
@@ -200,7 +200,7 @@ public class SQLArticulo {
                 controlConsulta = false;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            e.printStackTrace(System.out);
             JOptionPane.showMessageDialog(Conexion.PanelMensaje,
                     "PROBLEMAS....",
                     "SQL, ARTICULO",

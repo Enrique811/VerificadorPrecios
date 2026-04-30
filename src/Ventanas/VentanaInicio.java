@@ -731,7 +731,7 @@ public class VentanaInicio extends JFrame {
                 JOptionPane.showMessageDialog(this, "Configurar ambiente: " + Configuracion.ambiente);
             }
         } catch (JRException ex) {
-            ex.printStackTrace();
+            ex.printStackTrace(System.out);
             ToastNotification.showError(this, "No se pudo generar la etiqueta", 2200);
         }
     }

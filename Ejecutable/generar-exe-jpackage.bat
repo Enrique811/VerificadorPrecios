@@ -6,18 +6,20 @@ echo Generador INSTALADOR EXE (Java 21 + WiX)
 echo ==========================================
 echo.
 
-REM ==========================================
-REM MOVERSE A LA CARPETA DEL SCRIPT
-REM ==========================================
+REM =========================================================
+REM POSICIONAMIENTO: Garantiza que el script se ejecute desde
+REM la ruta donde se encuentra el archivo .bat
+REM =========================================================
 cd /d "%~dp0"
 
 echo Carpeta de trabajo:
 echo %CD%
 echo.
 
-REM ==========================================
-REM VALIDACIONES OBLIGATORIAS
-REM ==========================================
+REM =========================================================
+REM VALIDACIONES INICIALES: Verifica existencia de artefactos
+REM necesarios para el empaquetado
+REM =========================================================
 
 if not exist "VerificadorPrecios.jar" (
     echo ERROR: No se encontro VerificadorPrecios.jar
@@ -34,9 +36,10 @@ if not exist "reportes" (
     goto :error
 )
 
-REM ==========================================
-REM CONFIGURACION DEL JDK
-REM ==========================================
+REM =========================================================
+REM CONFIGURACION DEL JDK: Define la ruta del JDK requerido
+REM para herramientas jlink y jpackage
+REM =========================================================
 set "JDK_PATH=C:\Program Files\Java\jdk-21.0.10\bin"
 
 if not exist "%JDK_PATH%\jlink.exe" (
@@ -49,50 +52,51 @@ if not exist "%JDK_PATH%\jpackage.exe" (
     goto :error
 )
 
-REM ==========================================
-REM LIMPIAR BUILD ANTERIOR
-REM ==========================================
+REM =========================================================
+REM LIMPIEZA PREVIA: Elimina artefactos de ejecuciones previas
+REM =========================================================
 if exist "build" (
     echo Eliminando build anterior...
     rmdir /s /q "build"
 )
 
-REM ==========================================
-REM LIMPIAR RUNTIME ANTERIOR
-REM ==========================================
 if exist "runtime" (
     echo Eliminando runtime anterior...
     rmdir /s /q "runtime"
 )
 
-REM ==========================================
-REM LIMPIAR INSTALADOR ANTERIOR
-REM ==========================================
 if exist "VerificadorPrecios-1.0.0.msi" (
     echo Eliminando instalador anterior...
     del /f /q "VerificadorPrecios-1.0.0.msi"
 )
 
-REM ==========================================
-REM CREAR BUILD LIMPIO
-REM ==========================================
+REM =========================================================
+REM PREPARACION DEL DIRECTORIO BUILD:
+REM Se crea la estructura base y se copian los recursos
+REM necesarios para el empaquetado
+REM =========================================================
 echo Creando estructura build...
 mkdir build
 
+echo Copiando archivo principal...
 copy /y "VerificadorPrecios.jar" "build\"
 
+echo Copiando librerias...
 xcopy "lib" "build\lib\" /e /i /y || goto :error
+
+echo Copiando reportes...
 xcopy "reportes" "build\reportes\" /e /i /y || goto :error
 
 echo Build creado correctamente
 echo.
 
-REM ==========================================
-REM CREAR RUNTIME EMBEBIDO
-REM ==========================================
+REM =========================================================
+REM GENERACION DEL RUNTIME:
+REM Se construye un runtime reducido usando jlink
+REM =========================================================
 echo Creando runtime...
 
- "%JDK_PATH%\jlink.exe" ^
+"%JDK_PATH%\jlink.exe" ^
  --add-modules ALL-MODULE-PATH ^
  --output "runtime"
 
@@ -104,9 +108,10 @@ if errorlevel 1 (
 echo Runtime creado correctamente
 echo.
 
-REM ==========================================
-REM GENERAR INSTALADOR EXE
-REM ==========================================
+REM =========================================================
+REM GENERACION DEL INSTALADOR:
+REM Se empaqueta la aplicacion en formato MSI utilizando jpackage
+REM =========================================================
 echo Generando instalador...
 
 "%JDK_PATH%\jpackage.exe" ^
@@ -125,6 +130,7 @@ echo Generando instalador...
  --win-menu ^
  --win-menu-group "VerificadorPrecios" ^
  --java-options "-Dfile.encoding=UTF-8"
+
 if errorlevel 1 (
     echo.
     echo ERROR al generar el instalador
@@ -141,9 +147,10 @@ echo Instalador generado:
 echo %CD%\VerificadorPrecios-1.0.0.msi
 echo.
 
-REM ==========================================
-REM LIMPIEZA TEMPORAL
-REM ==========================================
+REM =========================================================
+REM LIMPIEZA FINAL:
+REM Eliminacion de archivos temporales generados durante el proceso
+REM =========================================================
 if exist "build" (
     echo Eliminando build temporal...
     rmdir /s /q "build"
@@ -161,6 +168,10 @@ echo.
 pause
 exit /b 0
 
+REM =========================================================
+REM MANEJO DE ERRORES:
+REM Limpieza basica y notificacion en caso de fallo
+REM =========================================================
 :error
 echo.
 echo ==========================================
