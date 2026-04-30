@@ -49,11 +49,10 @@ public final class Main {
                     return;
                 }
 
-                String detalleError = Conexion.getUltimoErrorConexion();
                 JOptionPane.showMessageDialog(null,
-                        "No fue posible conectar con la base de datos. Revise la configuracion.\n"
-                        + detalleError + "\n"
-                        + "Log: " + Metodos.ConfigManager.getConfigPath().replace("configuracion.properties", "logs\\conexion.log"));
+                        "No fue posible conectar con la base de datos.\n"
+                        + Conexion.getUltimoErrorConexion()
+                        + "\nRevise la configuracion e intente nuevamente.");
                 abrirVentanaConfiguracion();
             }
         };

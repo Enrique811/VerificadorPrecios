@@ -267,8 +267,8 @@ public class VentanaConfiguracion extends JFrame {
 
                 JOptionPane.showMessageDialog(VentanaConfiguracion.this,
                         "La configuracion se guardo, pero la conexion fallo.\n"
-                        + "Verifique ipEmpresa, usuario, password y rutaEmpresa.\n"
-                        + Conexion.getUltimoErrorConexion(),
+                        + Conexion.getUltimoErrorConexion()
+                        + "\nVerifique los datos e intente nuevamente.",
                         "Configuracion",
                         JOptionPane.ERROR_MESSAGE);
             }

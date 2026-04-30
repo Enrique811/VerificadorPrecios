@@ -135,8 +135,8 @@ public class Conexion {
             ultimoErrorConexion = "";
             return true;
         } catch (ClassNotFoundException | SQLException ex) {
-            ultimoErrorConexion = buildConnectionErrorMessage(urlConexion, ex);
-            registrarErrorConexion(ultimoErrorConexion, ex);
+            ultimoErrorConexion = buildUserFriendlyConnectionMessage(ex);
+            registrarErrorConexion(buildTechnicalConnectionErrorMessage(urlConexion, ex), ex);
             return false;
         } finally {
             DriverManager.setLoginTimeout(0);
@@ -201,12 +201,61 @@ public class Conexion {
         JOptionPane.showMessageDialog(PanelMensaje, mensaje);
     }
 
-    private static String buildConnectionErrorMessage(String urlConexion, Exception ex) {
+    private static String buildUserFriendlyConnectionMessage(Exception ex) {
+        if (ex instanceof ClassNotFoundException) {
+            return "No fue posible iniciar el controlador de base de datos.";
+        }
+
+        String message = ex.getMessage();
+        if (message == null) {
+            return "No fue posible establecer la conexion.";
+        }
+
+        String normalized = message.toLowerCase();
+        if (normalized.contains("timeout")) {
+            return "La conexion tardo demasiado en responder.";
+        }
+        if (normalized.contains("password") || normalized.contains("login")
+                || normalized.contains("authentication") || normalized.contains("usuario")) {
+            return "El usuario o la contrasena no son validos.";
+        }
+        if (normalized.contains("connection refused") || normalized.contains("unable to complete network request")
+                || normalized.contains("network")) {
+            return "No fue posible comunicarse con el servidor.";
+        }
+        if (normalized.contains(".fdb") || normalized.contains("file") || normalized.contains("path")) {
+            return "La ruta de la base de datos no es valida o no esta disponible.";
+        }
+
+        return "No fue posible establecer la conexion.";
+    }
+
+    private static String buildTechnicalConnectionErrorMessage(String urlConexion, Exception ex) {
         String message = ex.getMessage();
         if (message == null || message.trim().isEmpty()) {
             message = ex.getClass().getName();
         }
-        return "URL: " + urlConexion + " | Error: " + message;
+        return "URL: " + sanitizeConnectionUrl(urlConexion) + " | Error: " + message;
+    }
+
+    private static String sanitizeConnectionUrl(String urlConexion) {
+        if (urlConexion == null || urlConexion.trim().isEmpty()) {
+            return "(sin URL)";
+        }
+
+        int protocolSeparator = urlConexion.indexOf("://");
+        int firstSlashAfterHost = protocolSeparator >= 0
+                ? urlConexion.indexOf('/', protocolSeparator + 3)
+                : -1;
+        int querySeparator = urlConexion.indexOf('?');
+
+        if (firstSlashAfterHost < 0) {
+            return urlConexion;
+        }
+
+        String prefix = urlConexion.substring(0, firstSlashAfterHost + 1);
+        String suffix = querySeparator >= 0 ? urlConexion.substring(querySeparator) : "";
+        return prefix + "***" + suffix;
     }
 
     private static void registrarErrorConexion(String resumen, Exception ex) {
