@@ -9,6 +9,8 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.Properties;
 
@@ -16,6 +18,8 @@ public final class ConfigManager {
 
     private static final String APPDATA_DIR = resolveAppDataDirectory();
     private static final String CONFIG_PATH = APPDATA_DIR + File.separator + "configuracion.properties";
+    private static final String LAST_MODIFIED_KEY = "ultimaModificacion";
+    private static final DateTimeFormatter LAST_MODIFIED_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String DEFAULT_CONFIG_CONTENT = "# Base configuration\n"
             + "ambiente=YQ\\=\\=\n"
             + "clave=\n"
@@ -26,6 +30,7 @@ public final class ConfigManager {
             + "password=bWFzdGVya2V5\n"
             + "reporte=\n"
             + "rutaEmpresa=\n"
+            + "ultimaModificacion=\n"
             + "usuario=U1lTREJB\n";
     public static final String DEFAULT_USUARIO = "SYSDBA";
     public static final String DEFAULT_PASSWORD = "masterkey";
@@ -182,6 +187,7 @@ public final class ConfigManager {
     }
 
     private static void storeProperties(Properties decodedProperties) throws IOException {
+        decodedProperties.setProperty(LAST_MODIFIED_KEY, LocalDateTime.now().format(LAST_MODIFIED_FORMAT));
         Properties encodedProperties = new Properties();
         for (String key : decodedProperties.stringPropertyNames()) {
             String value = decodedProperties.getProperty(key, "");

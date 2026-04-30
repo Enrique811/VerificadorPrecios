@@ -10,6 +10,13 @@
 <project name="VerificadorPrecios" default="default" basedir=".">
     <description>Builds, tests, and runs the project VerificadorPrecios.</description>
     <import file="nbproject/build-impl.xml"/>
+
+    <target name="-post-compile">
+        <tstamp>
+            <format property="build.timestamp" pattern="yyyy-MM-dd HH:mm:ss"/>
+        </tstamp>
+        <echo file="${build.classes.dir}/build-info.properties">build.timestamp=${build.timestamp}</echo>
+    </target>
     
     <target name="-post-jar">
         <mkdir dir="${basedir}/Ejecutable"/>

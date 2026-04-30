@@ -1,6 +1,7 @@
 package Ventanas;
 
 import Conexion.Conexion;
+import Metodos.BuildInfo;
 import Metodos.Configuracion;
 import Metodos.DatosReporte;
 import Metodos.PrecioFormatter;
@@ -632,7 +633,10 @@ public class VentanaInicio extends JFrame {
     }
 
     private String construirTextoMetadataSistema() {
-        return "Ver.: " + VERSION + " Última actualización: " + FECHA_ACTUALIZACION;
+        return "<html>Ver.: " + VERSION
+                + "<br>Última actualización: " + FECHA_ACTUALIZACION
+                + "<br>Compilación: " + BuildInfo.getBuildTimestamp()
+                + "</html>";
     }
 
     private String valorVisible(String valor) {
