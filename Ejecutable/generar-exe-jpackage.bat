@@ -74,9 +74,9 @@ if exist "runtime" (
 REM ==========================================
 REM LIMPIAR INSTALADOR ANTERIOR
 REM ==========================================
-if exist "VerificadorPrecios.exe" (
+if exist "VerificadorPrecios-1.0.0.msi" (
     echo Eliminando instalador anterior...
-    del /f /q "VerificadorPrecios.exe"
+    del /f /q "VerificadorPrecios-1.0.0.msi"
 )
 
 REM ==========================================
@@ -99,8 +99,8 @@ REM CREAR RUNTIME EMBEBIDO
 REM ==========================================
 echo Creando runtime...
 
-"%JDK_PATH%\jlink.exe" ^
- --add-modules java.base,java.desktop,java.logging,java.sql,java.xml,java.naming,java.management,java.datatransfer,java.prefs ^
+ "%JDK_PATH%\jlink.exe" ^
+ --add-modules ALL-MODULE-PATH ^
  --output "runtime"
 
 if errorlevel 1 (
@@ -143,7 +143,7 @@ echo ==========================================
 echo.
 
 echo Instalador generado:
-echo %CD%\VerificadorPrecios.exe
+echo %CD%\VerificadorPrecios-1.0.0.msi
 echo.
 
 REM ==========================================
