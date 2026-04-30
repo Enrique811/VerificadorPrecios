@@ -34,12 +34,6 @@ if not exist "reportes" (
     goto :error
 )
 
-
-if not exist "fonts" (
-    echo ERROR: No se encontro fonts
-    goto :error
-)
-
 REM ==========================================
 REM CONFIGURACION DEL JDK
 REM ==========================================
@@ -89,7 +83,6 @@ copy /y "VerificadorPrecios.jar" "build\"
 
 xcopy "lib" "build\lib\" /e /i /y || goto :error
 xcopy "reportes" "build\reportes\" /e /i /y || goto :error
-xcopy "fonts" "build\fonts\" /e /i /y || goto :error
 
 echo Build creado correctamente
 echo.
@@ -128,8 +121,10 @@ echo Generando instalador...
  --vendor "edelangel" ^
  --app-version "1.0.0" ^
  --win-upgrade-uuid "12345678-1234-1234-1234-123456789012" ^
+ --win-shortcut ^
+ --win-menu ^
+ --win-menu-group "VerificadorPrecios" ^
  --java-options "-Dfile.encoding=UTF-8"
-
 if errorlevel 1 (
     echo.
     echo ERROR al generar el instalador

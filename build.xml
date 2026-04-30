@@ -11,11 +11,6 @@
     <description>Builds, tests, and runs the project VerificadorPrecios.</description>
     <import file="nbproject/build-impl.xml"/>
     
-    <target name="-post-compile">
-        <copy file="${basedir}/fonts/fonts.xml" todir="${build.classes.dir}" failonerror="false"/>
-        <copy file="${basedir}/fonts/jasperreports_extension.properties" todir="${build.classes.dir}" failonerror="false"/>
-    </target>
-
     <target name="-post-jar">
         <mkdir dir="${basedir}/Ejecutable"/>
         <copy file="${dist.jar}" tofile="${basedir}/Ejecutable/VerificadorPrecios.jar" overwrite="true"/>

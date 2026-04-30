@@ -33,8 +33,7 @@ public final class AppPaths {
         File current = startDir;
         for (int i = 0; current != null && i < 4; i++) {
             if (new File(current, "reportes").isDirectory()
-                    || new File(current, "lib").isDirectory()
-                    || new File(current, "fonts").isDirectory()) {
+                    || new File(current, "lib").isDirectory()) {
                 return current;
             }
             current = current.getParentFile();

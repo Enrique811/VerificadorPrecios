@@ -35,11 +35,6 @@ if not exist "reportes" (
 )
 
 
-if not exist "fonts" (
-    echo ERROR: No se encontro fonts
-    goto :error
-)
-
 REM ==========================================
 REM CONFIGURACION DEL JDK
 REM ==========================================
@@ -89,7 +84,6 @@ copy /y "VerificadorPrecios.jar" "build\"
 
 xcopy "lib" "build\lib\" /e /i /y || goto :error
 xcopy "reportes" "build\reportes\" /e /i /y || goto :error
-xcopy "fonts" "build\fonts\" /e /i /y || goto :error
 
 echo Build creado correctamente
 echo.
