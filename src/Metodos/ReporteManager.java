@@ -9,19 +9,18 @@ import java.util.List;
 
 public final class ReporteManager {
 
-    private static final String REPORTES_DIR = System.getProperty("user.dir") + File.separator + "reportes";
+    private static final File REPORTES_DIR = AppPaths.resolveResourceDirectory("reportes");
     private static final String EXTENSION_JASPER = ".jasper";
 
     private ReporteManager() {
     }
 
     public static List<String> listarReportesDisponibles() {
-        File directorio = new File(REPORTES_DIR);
-        if (!directorio.exists() || !directorio.isDirectory()) {
+        if (!REPORTES_DIR.exists() || !REPORTES_DIR.isDirectory()) {
             return Collections.emptyList();
         }
 
-        File[] archivos = directorio.listFiles(new FilenameFilter() {
+        File[] archivos = REPORTES_DIR.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
                 return name != null && name.toLowerCase().endsWith(EXTENSION_JASPER);
