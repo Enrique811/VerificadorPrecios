@@ -1,11 +1,12 @@
 package Ventanas;
 
-import Metodos.ConfigManager;
-import Metodos.Configuracion;
 import Metodos.LicenseJsonValidator;
 import Metodos.LicenseValidationResult;
 import Metodos.PrinterUtils;
 import Metodos.ReporteManager;
+import aplicacion.ConfigService;
+import dominio.ConfiguracionApp;
+import infraestructura.LegacyConfigRepository;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -22,7 +23,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.Properties;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -70,6 +70,7 @@ public class ConfiguracionWindow extends JDialog {
     private JComboBox<String> comboReporte;
 
     private final VentanaInicio ownerFrame;
+    private final ConfigService configService = new ConfigService(new LegacyConfigRepository());
 
     public ConfiguracionWindow(Frame owner, boolean modal) {
         super(owner, modal);
@@ -121,7 +122,7 @@ public class ConfiguracionWindow extends JDialog {
         titulo.setForeground(COLOR_TITULO);
 
         JLabel subtitulo = new JLabel("<html>Administra ambiente, licencia, impresora y reporte.<br>"
-                + "Archivo: " + ConfigManager.getConfigPath() + "</html>");
+                + "Archivo: " + Metodos.ConfigManager.getConfigPath() + "</html>");
         subtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitulo.setForeground(COLOR_TEXTO);
 
@@ -315,20 +316,13 @@ public class ConfiguracionWindow extends JDialog {
     }
 
     private void cargarConfiguracion() {
-        try {
-            Properties properties = ConfigManager.loadProperties();
-            seleccionarAmbiente(properties.getProperty("ambiente", "a"));
-            seleccionarFormatoPrecio(properties.getProperty("formatoPrecio", "CO"));
-            cargarLicenciaGuardada(properties.getProperty("clave", ""));
-            actualizarFechasLicencia();
-            cargarImpresoras(properties.getProperty("impresora", ""));
-            cargarReportes(properties.getProperty("reporte", ""));
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this,
-                    "No se pudo leer el archivo de configuraci\u00f3n.\n" + ex.getMessage(),
-                    "Configuraci\u00f3n",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+        ConfiguracionApp config = configService.cargarConfiguracion();
+        seleccionarAmbiente(valorSeguro(config.getAmbiente(), "a"));
+        seleccionarFormatoPrecio(valorSeguro(config.getFormatoPrecio(), "CO"));
+        cargarLicenciaGuardada(valorSeguro(config.getClave(), ""));
+        actualizarFechasLicencia();
+        cargarImpresoras(valorSeguro(config.getImpresora(), ""));
+        cargarReportes(valorSeguro(config.getReporte(), ""));
     }
 
     private void cargarImpresoras(String impresoraSeleccionada) {
@@ -427,14 +421,12 @@ public class ConfiguracionWindow extends JDialog {
                     ? comboReporte.getSelectedItem().toString()
                     : "";
 
-            ConfigManager.saveConfiguration(
+            configService.guardarPreferencias(
                     ambienteSeleccionado != null ? ambienteSeleccionado.codigo : "a",
                     clave,
                     impresora,
                     formatoSeleccionado != null ? formatoSeleccionado.codigo : "CO",
                     reporte);
-
-            Configuracion.leerArchivoDePropiedades();
             if (ownerFrame != null) {
                 ownerFrame.aplicarConfiguracionActual();
             }
@@ -531,6 +523,13 @@ public class ConfiguracionWindow extends JDialog {
         }
 
         return valor.trim();
+    }
+
+    private String valorSeguro(String valor, String fallback) {
+        if (valor == null || valor.trim().isEmpty()) {
+            return fallback;
+        }
+        return valor;
     }
 
     private void importarLicenciaDesdeArchivo() {

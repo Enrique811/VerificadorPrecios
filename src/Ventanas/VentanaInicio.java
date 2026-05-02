@@ -2,13 +2,19 @@ package Ventanas;
 
 import Conexion.Conexion;
 import Metodos.BuildInfo;
-import Metodos.Configuracion;
 import Metodos.DatosReporte;
 import Metodos.PrecioFormatter;
 import Metodos.ReporteManager;
-import static SQL.SQLFechaHora.obtenerFechayHoraActualDelServidor;
+import aplicacion.ArticuloService;
+import aplicacion.ConfigService;
+import aplicacion.ServerClockService;
 import com.project.barcode.newimpl.BarcodeFacade;
 import com.project.barcode.newimpl.BarcodeResult;
+import dominio.ArticuloDetalle;
+import dominio.ConfiguracionApp;
+import infraestructura.LegacyConfigRepository;
+import infraestructura.SqlArticuloRepository;
+import infraestructura.SqlServerClockRepository;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -24,6 +30,7 @@ import java.awt.Image;
 import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
+import java.math.BigDecimal;
 import java.net.URL;
 import java.util.ArrayList;
 import javax.print.PrintService;
@@ -105,12 +112,16 @@ public class VentanaInicio extends JFrame {
     private JPanel tarjetaCaptura;
     private JPanel tarjetaDetalle;
     private JPanel tarjetaPrecio;
+    private final ArticuloService articuloService = new ArticuloService(new SqlArticuloRepository());
+    private final ConfigService configService = new ConfigService(new LegacyConfigRepository());
+    private final ServerClockService serverClockService = new ServerClockService(new SqlServerClockRepository());
+    private ArticuloDetalle articuloActual;
+    private ConfiguracionApp configuracionActual;
 
     public VentanaInicio() {
         initComponents();
         aplicarLogoApp();
-        Configuracion.leerArchivoDePropiedades();
-        informacion.setText(Configuracion.informacion);
+        recargarConfiguracionActual();
         configurarAcciones();
         setLocationRelativeTo(null);
         setExtendedState(Frame.MAXIMIZED_BOTH);
@@ -501,8 +512,8 @@ public class VentanaInicio extends JFrame {
         informacion.addActionListener(e -> consultarArticulo());
         informacion.addFocusListener(new java.awt.event.FocusAdapter() {
             @Override
-            public void focusLost(java.awt.event.FocusEvent evt) {
-                Configuracion.guardarInformacionEnArchivo(informacion.getText());
+                public void focusLost(java.awt.event.FocusEvent evt) {
+                guardarInformacionActual();
             }
         });
 
@@ -553,12 +564,13 @@ public class VentanaInicio extends JFrame {
     }
 
     private void inicializarLicenciaYConexion() {
-        if (Configuracion.clave == null || Configuracion.clave.trim().isEmpty()) {
+        if (configuracionActual == null || configuracionActual.getClave() == null
+                || configuracionActual.getClave().trim().isEmpty()) {
             SwingUtilities.invokeLater(() -> {
                 abrirConfiguracion();
-                Configuracion.leerArchivoDePropiedades();
-                informacion.setText(Configuracion.informacion);
-                if (Configuracion.clave != null && !Configuracion.clave.trim().isEmpty()) {
+                recargarConfiguracionActual();
+                if (configuracionActual != null && configuracionActual.getClave() != null
+                        && !configuracionActual.getClave().trim().isEmpty()) {
                     Conexion.tieneLicenciavalida();
                 } else {
                     JOptionPane.showMessageDialog(this, "Debe capturar una licencia para continuar.");
@@ -575,16 +587,18 @@ public class VentanaInicio extends JFrame {
     private void consultarArticulo() {
         String codigo = codigoBarras.getText().trim();
         if (codigo.isEmpty()) {
+            articuloActual = null;
             limpiarDatosArticulo();
             mostrarEstadoNeutral("Escribe o escanea un código para consultar");
             return;
         }
 
-        SQL.SQLArticulo.buscarArticuloPorCodigoBarra(codigo, String.valueOf(8));
-        if (SQL.SQLArticulo.controlConsulta) {
-            actualizarDesdeArticuloActual();
+        articuloActual = articuloService.consultarArticulo(codigo, String.valueOf(8));
+        if (articuloActual != null) {
+            actualizarDesdeArticuloActual(articuloActual);
             mostrarEstadoExito("Producto encontrado");
         } else {
+            articuloActual = null;
             limpiarDatosArticulo();
             mostrarEstadoError("Producto no encontrado");
             ToastNotification.showWarning(this, "Producto no encontrado", 2000);
@@ -599,24 +613,30 @@ public class VentanaInicio extends JFrame {
     }
 
     public void aplicarConfiguracionActual() {
-        Configuracion.leerArchivoDePropiedades();
-        informacion.setText(Configuracion.informacion);
+        recargarConfiguracionActual();
         mostrarEstadoNeutral("Configuración actualizada");
         SwingUtilities.invokeLater(() -> codigoBarras.requestFocusInWindow());
     }
 
-    private void actualizarDesdeArticuloActual() {
-        double precioVentaIva = Double.parseDouble(SQL.SQLArticulo.precio_venta_iva);
+    private void actualizarDesdeArticuloActual(ArticuloDetalle articulo) {
+        BigDecimal precioVentaIva = articulo.getDesglosePrecio() == null
+                ? parsearPrecioSeguro(articulo.getPrecioIva())
+                : articulo.getDesglosePrecio().getPrecioFinal();
         String precioFormateado = formatearPrecio(precioVentaIva);
-        actualizarDatosArticulo(SQL.SQLArticulo.descripcion, SQL.SQLArticulo.presentacion,
-                SQL.SQLArticulo.formato, precioFormateado);
+        actualizarDatosArticulo(articulo.getDescripcion(), articulo.getPresentacion(),
+                articulo.getStock(), precioFormateado);
     }
 
     public static String formatearPrecio(double precioValor) {
         return PrecioFormatter.formatearPrecio(precioValor);
     }
 
-    public final void actualizarDatosArticulo(String descripcionTexto, String presentacionTexto, String existenciaTexto, String precioTexto) {
+    public static String formatearPrecio(BigDecimal precioValor) {
+        return PrecioFormatter.formatearPrecio(precioValor);
+    }
+
+    public final void actualizarDatosArticulo(String descripcionTexto, String presentacionTexto,
+            String existenciaTexto, String precioTexto) {
         descripcion.setText(valorVisible(descripcionTexto));
         presentacion.setText(valorVisible(presentacionTexto));
         formato.setText(valorVisible(existenciaTexto));
@@ -630,6 +650,13 @@ public class VentanaInicio extends JFrame {
         formato.setText("-");
         precio.setText("$ 0");
         etiquetaTotales.setText(construirTextoMetadataSistema());
+    }
+
+    private BigDecimal parsearPrecioSeguro(String valor) {
+        if (valor == null || valor.trim().isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return new BigDecimal(valor.trim());
     }
 
     private String construirTextoMetadataSistema() {
@@ -666,9 +693,9 @@ public class VentanaInicio extends JFrame {
 
     private void imprimirEtiqueta() {
         try {
-            String codigoOriginal = SQL.SQLArticulo.codigo_barras == null
+            String codigoOriginal = articuloActual == null || articuloActual.getCodigoBarras() == null
                     ? ""
-                    : SQL.SQLArticulo.codigo_barras.trim();
+                    : articuloActual.getCodigoBarras().trim();
             if (codigoOriginal.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "No hay codigo de barras para imprimir.");
                 return;
@@ -679,7 +706,8 @@ public class VentanaInicio extends JFrame {
                 ToastNotification.showError(this, "No se pudo generar el codigo de barras", 2200);
                 return;
             }
-            String reporteSeleccionado = ReporteManager.resolverReporteConfigurado(Configuracion.reporte);
+            String reporteConfigurado = configuracionActual == null ? "" : configuracionActual.getReporte();
+            String reporteSeleccionado = ReporteManager.resolverReporteConfigurado(reporteConfigurado);
             String rutaReporte = ReporteManager.obtenerRutaReporteSeleccionado(reporteSeleccionado);
             if (rutaReporte == null) {
                 JOptionPane.showMessageDialog(this, "No se encontro un reporte .jasper valido en /reportes.");
@@ -693,20 +721,20 @@ public class VentanaInicio extends JFrame {
                     codigoOriginal,
                     descripcion.getText(),
                     precio.getText(),
-                    obtenerFechayHoraActualDelServidor(),
+                    serverClockService.obtenerFechaActual(),
                     informacion.getText()));
 
             JRDataSource dataSource = new JRBeanCollectionDataSource(parametros);
             JasperPrint informe = JasperFillManager.fillReport(rutaReporte, null, dataSource);
 
-            if (Configuracion.ambiente.equalsIgnoreCase("a")) {
+            if (configuracionActual != null && "a".equalsIgnoreCase(configuracionActual.getAmbiente())) {
                 mostrarVistaPreviaJasper(informe);
-            } else if (Configuracion.ambiente.equalsIgnoreCase("b")) {
+            } else if (configuracionActual != null && "b".equalsIgnoreCase(configuracionActual.getAmbiente())) {
                 PrintService[] services = PrintServiceLookup.lookupPrintServices(null, null);
                 PrintService impresoraSeleccionada = null;
 
                 for (PrintService service : services) {
-                    if (service.getName().equalsIgnoreCase(Configuracion.impresora)) {
+                    if (service.getName().equalsIgnoreCase(configuracionActual.getImpresora())) {
                         impresoraSeleccionada = service;
                         break;
                     }
@@ -725,14 +753,30 @@ public class VentanaInicio extends JFrame {
                     exportador.setConfiguration(config);
                     exportador.exportReport();
                 } else {
-                    JOptionPane.showMessageDialog(this, "No se encontro la impresora: " + Configuracion.impresora);
+                    JOptionPane.showMessageDialog(this, "No se encontro la impresora: " + configuracionActual.getImpresora());
                 }
             } else {
-                JOptionPane.showMessageDialog(this, "Configurar ambiente: " + Configuracion.ambiente);
+                String ambienteActual = configuracionActual == null ? "" : configuracionActual.getAmbiente();
+                JOptionPane.showMessageDialog(this, "Configurar ambiente: " + ambienteActual);
             }
         } catch (JRException ex) {
             ex.printStackTrace(System.out);
             ToastNotification.showError(this, "No se pudo generar la etiqueta", 2200);
+        }
+    }
+
+    private void recargarConfiguracionActual() {
+        configuracionActual = configService.cargarConfiguracion();
+        informacion.setText(configuracionActual == null ? "" : configuracionActual.getInformacion());
+    }
+
+    private void guardarInformacionActual() {
+        try {
+            configService.guardarInformacion(informacion.getText());
+            configuracionActual = configService.cargarConfiguracion();
+        } catch (java.io.IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error al guardar en el archivo: " + ex,
+                    "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 

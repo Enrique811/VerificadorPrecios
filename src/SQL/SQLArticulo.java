@@ -8,8 +8,14 @@ package SQL;
 import Conexion.Conexion;
 import Metodos.Articulos;
 import Metodos.Configuracion;
+import dominio.ImpuestoDefinicion;
+import java.math.BigDecimal;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import javax.swing.JOptionPane;
 
 /**
@@ -25,6 +31,7 @@ public class SQLArticulo {
     public static String presentacion;
     public static String formato;
     public static String precio_venta_iva;
+    public static String impuestos;
     public static String familia;
     public static boolean controlConsulta;
 
@@ -39,6 +46,7 @@ public class SQLArticulo {
             + " A.TVENTA AS FORMATO,"
             + " A.TVENTA AS PRESENTACION,"
             + " A.PVENTA AS PRECIO_IVA,"
+            + " A.IMPUESTOS AS IMPUESTOS,"
             + " B.CANTIDAD_ACTUAL AS STOCK"
             + " FROM PRODUCTOS A"
             + " LEFT JOIN INVENTARIO_BALANCES B ON A.ID = B.PRODUCTO_ID";
@@ -55,6 +63,7 @@ public class SQLArticulo {
         formato = stockSeguro(Conexion.resultado.getString("STOCK"));
         presentacion = Conexion.resultado.getString("PRESENTACION");
         precio_venta_iva = Conexion.resultado.getString("PRECIO_IVA");
+        impuestos = Conexion.resultado.getString("IMPUESTOS");
     }
 
     public static void buscarArticuloPorCodigoBarra(String cod_barras, String tarifa) {
@@ -115,6 +124,7 @@ public class SQLArticulo {
                 formato = stockSeguro(Conexion.resultado.getString("STOCK"));
                 presentacion = Conexion.resultado.getString("PRESENTACION");
                 precio_venta_iva = Conexion.resultado.getString("PRECIO_IVA");
+                impuestos = null;
                 controlConsulta = true;
             } else {
                 controlConsulta = false;
@@ -208,6 +218,144 @@ public class SQLArticulo {
         } finally {
             Conexion.cerrarRecursosConsulta();
         }
+    }
+
+    public static List<ImpuestoDefinicion> obtenerImpuestosPorCadena(String impuestosCsv) {
+        if (impuestosCsv == null || impuestosCsv.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<ImpuestoDefinicion> impuestosEncontrados = new ArrayList<ImpuestoDefinicion>();
+        try {
+            Conexion.ConectarBDEmpresa();
+            for (String impuestoId : impuestosCsv.split(",")) {
+                String idNormalizado = impuestoId == null ? "" : impuestoId.trim();
+                if (idNormalizado.isEmpty()) {
+                    continue;
+                }
+
+                Conexion.cerrarRecursosConsulta();
+                Conexion.consulta = "SELECT * FROM IMPUESTOS WHERE ID = ?";
+                Conexion.preparacion = Conexion.conexion.prepareStatement(Conexion.consulta);
+                Conexion.preparacion.setString(1, idNormalizado);
+                Conexion.resultado = Conexion.preparacion.executeQuery();
+
+                if (Conexion.resultado.next()) {
+                    impuestosEncontrados.add(new ImpuestoDefinicion(
+                            idNormalizado,
+                            resolverNombreImpuesto(),
+                            resolverPorcentajeImpuesto()));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace(System.out);
+            JOptionPane.showMessageDialog(Conexion.PanelMensaje,
+                    "PROBLEMAS AL CONSULTAR IMPUESTOS....",
+                    "SQL, IMPUESTOS",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } finally {
+            Conexion.cerrarRecursosConsulta();
+        }
+        return impuestosEncontrados;
+    }
+
+    private static String resolverNombreImpuesto() throws SQLException {
+        String nombre = obtenerTextoColumna("DESCRIPCION", "NOMBRE", "IMPUESTO", "DETALLE", "CONCEPTO");
+        if (nombre == null || nombre.trim().isEmpty()) {
+            return "Impuesto";
+        }
+        return nombre.trim();
+    }
+
+    private static BigDecimal resolverPorcentajeImpuesto() throws SQLException {
+        BigDecimal porcentaje = obtenerDecimalColumna("PORCENTAJE", "VALOR", "TASA", "TARIFA", "IMPORTE");
+        return porcentaje == null ? BigDecimal.ZERO : porcentaje;
+    }
+
+    private static String obtenerTextoColumna(String... candidatos) throws SQLException {
+        String columna = buscarColumnaPorNombre(false, candidatos);
+        if (columna != null) {
+            return Conexion.resultado.getString(columna);
+        }
+
+        ResultSetMetaData metaData = Conexion.resultado.getMetaData();
+        int columnas = metaData.getColumnCount();
+        for (int i = 1; i <= columnas; i++) {
+            if (esColumnaTexto(metaData.getColumnType(i)) && !"ID".equalsIgnoreCase(metaData.getColumnLabel(i))) {
+                return Conexion.resultado.getString(i);
+            }
+        }
+        return null;
+    }
+
+    private static BigDecimal obtenerDecimalColumna(String... candidatos) throws SQLException {
+        String columna = buscarColumnaPorNombre(true, candidatos);
+        if (columna != null) {
+            return Conexion.resultado.getBigDecimal(columna);
+        }
+
+        ResultSetMetaData metaData = Conexion.resultado.getMetaData();
+        int columnas = metaData.getColumnCount();
+        for (int i = 1; i <= columnas; i++) {
+            if ("ID".equalsIgnoreCase(metaData.getColumnLabel(i))) {
+                continue;
+            }
+            if (esColumnaNumerica(metaData.getColumnType(i))) {
+                return Conexion.resultado.getBigDecimal(i);
+            }
+        }
+        return null;
+    }
+
+    private static String buscarColumnaPorNombre(boolean numerica, String... candidatos) throws SQLException {
+        ResultSetMetaData metaData = Conexion.resultado.getMetaData();
+        int columnas = metaData.getColumnCount();
+        for (String candidato : candidatos) {
+            for (int i = 1; i <= columnas; i++) {
+                String label = metaData.getColumnLabel(i);
+                String nombre = metaData.getColumnName(i);
+                if (!coincideNombreColumna(candidato, label) && !coincideNombreColumna(candidato, nombre)) {
+                    continue;
+                }
+                int tipo = metaData.getColumnType(i);
+                if (numerica && !esColumnaNumerica(tipo)) {
+                    continue;
+                }
+                if (!numerica && !esColumnaTexto(tipo)) {
+                    continue;
+                }
+                return label;
+            }
+        }
+        return null;
+    }
+
+    private static boolean coincideNombreColumna(String candidato, String valorColumna) {
+        if (candidato == null || valorColumna == null) {
+            return false;
+        }
+
+        String candidatoNormalizado = candidato.trim().toUpperCase();
+        String columnaNormalizada = valorColumna.trim().toUpperCase();
+        return candidatoNormalizado.equals(columnaNormalizada)
+                || columnaNormalizada.contains(candidatoNormalizado);
+    }
+
+    private static boolean esColumnaNumerica(int tipoSql) {
+        return tipoSql == Types.DECIMAL
+                || tipoSql == Types.NUMERIC
+                || tipoSql == Types.DOUBLE
+                || tipoSql == Types.FLOAT
+                || tipoSql == Types.REAL
+                || tipoSql == Types.INTEGER
+                || tipoSql == Types.SMALLINT
+                || tipoSql == Types.BIGINT;
+    }
+
+    private static boolean esColumnaTexto(int tipoSql) {
+        return tipoSql == Types.CHAR
+                || tipoSql == Types.VARCHAR
+                || tipoSql == Types.LONGVARCHAR;
     }
 
 }

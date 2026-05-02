@@ -2,7 +2,9 @@ package Ventanas;
 
 import App.Main;
 import Conexion.Conexion;
-import Metodos.ConfigManager;
+import aplicacion.ConfigService;
+import dominio.ConfiguracionApp;
+import infraestructura.LegacyConfigRepository;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -56,6 +58,7 @@ public class VentanaConfiguracion extends JFrame {
     private JButton botonRutaEmpresa;
     private JButton botonCopiarUuid;
     private JButton botonGuardar;
+    private final ConfigService configService = new ConfigService(new LegacyConfigRepository());
 
     public VentanaConfiguracion() {
         initComponents();
@@ -195,11 +198,11 @@ public class VentanaConfiguracion extends JFrame {
     }
 
     private void cargarConfiguracionActual() {
-        ConfigManager config = new ConfigManager();
-        campoIpEmpresa.setText(config.get("ipEmpresa"));
-        campoUsuario.setText(config.get("usuario"));
-        campoPassword.setText(config.get("password"));
-        campoRutaEmpresa.setText(config.get("rutaEmpresa"));
+        ConfiguracionApp config = configService.cargarConfiguracion();
+        campoIpEmpresa.setText(config.getIpEmpresa());
+        campoUsuario.setText(config.getUsuario());
+        campoPassword.setText(config.getPassword());
+        campoRutaEmpresa.setText(config.getRutaEmpresa());
         campoUuidEquipo.setText(obtenerUuidEquipoLocal());
     }
 
@@ -224,20 +227,14 @@ public class VentanaConfiguracion extends JFrame {
 
             @Override
             protected Boolean doInBackground() {
-                ConfigManager config = new ConfigManager();
-                config.set("ipEmpresa", ipEmpresa);
-                config.set("usuario", usuario);
-                config.set("password", password);
-                config.set("rutaEmpresa", rutaEmpresa);
-
                 try {
-                    config.save();
+                    configService.guardarConexion(ipEmpresa, usuario, password, rutaEmpresa);
                 } catch (IOException ex) {
                     saveErrorMessage = ex.getMessage();
                     return null;
                 }
 
-                return Boolean.valueOf(Conexion.probarConexion(config));
+                return Boolean.valueOf(Conexion.probarConexion(new Metodos.ConfigManager()));
             }
 
             @Override

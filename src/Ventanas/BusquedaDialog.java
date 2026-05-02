@@ -2,6 +2,8 @@ package Ventanas;
 
 import Metodos.Articulos;
 import Metodos.PrecioFormatter;
+import aplicacion.ArticuloService;
+import infraestructura.SqlArticuloRepository;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -67,6 +69,7 @@ public class BusquedaDialog extends JDialog {
     private JPanel overlay;
     private ComponentAdapter overlayResizeListener;
     private final VentanaInicio ownerFrame;
+    private final ArticuloService articuloService = new ArticuloService(new SqlArticuloRepository());
 
     public BusquedaDialog(java.awt.Frame owner, boolean modal) {
         super(owner, modal);
@@ -340,7 +343,8 @@ public class BusquedaDialog extends JDialog {
     private void buscarArticulos() {
         Object[] fila = new Object[4];
         limpiarTablaArticulo();
-        ArrayList<Articulos> listaArt = new ArrayList<Articulos>(SQL.SQLArticulo.buscarArticuloPorDescripcion(Nombre.getText()));
+        ArrayList<Articulos> listaArt = new ArrayList<Articulos>(
+                articuloService.buscarArticulosPorDescripcion(Nombre.getText()));
 
         for (int x = 0; x < listaArt.size(); x++) {
             fila[0] = listaArt.get(x).getCodigoBarras();
