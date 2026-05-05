@@ -23,9 +23,10 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import javax.swing.JOptionPane;
 
@@ -33,36 +34,43 @@ public class Configuracion {
 
     public static String ipEmpresa;
     public static String rutaEmpresa;
+    public static String usuario;
+    public static String password;
     public static String clave;
     public static String informacion;
     public static String impresora;
     public static String ambiente;
     public static String formatoPrecio;
+    public static String reporte;
      
-    private static String url = System.getProperty("user.dir") + "/configuracion.properties";
-    public static String key = "Artemisa";
+    private static String url = ConfigManager.getConfigPath();
+    public static String key = "K7m2X9qLp4";
 
     public static void leerArchivoDePropiedades() {
-        Properties propiedades = new Properties();
-        InputStream entrada;
         try {
-            entrada = new FileInputStream(url);
-            propiedades.load(entrada);
+            Properties propiedades = ConfigManager.loadProperties();
             ipEmpresa = propiedades.getProperty("ipEmpresa");
             rutaEmpresa = propiedades.getProperty("rutaEmpresa");
+            usuario = propiedades.getProperty("usuario",
+                    propiedades.getProperty("db", ConfigManager.DEFAULT_USUARIO));
+            password = propiedades.getProperty("password", ConfigManager.DEFAULT_PASSWORD);
             clave = propiedades.getProperty("clave");
             informacion = propiedades.getProperty("informacion");
             impresora = propiedades.getProperty("impresora");
             ambiente = propiedades.getProperty("ambiente");
             formatoPrecio = propiedades.getProperty("formatoPrecio", "CO");
+            reporte = ReporteManager.resolverReporteConfigurado(propiedades.getProperty("reporte", ""));
 
             System.out.println("IP EMPRESA: " + ipEmpresa);
             System.out.println("RUTA EMPRESA: " + rutaEmpresa);
+            System.out.println("USUARIO: " + usuario);
+            System.out.println("PASSWORD: " + ((password == null || password.trim().isEmpty()) ? "" : "******"));
             System.out.println("CLAVE: " + clave);
             System.out.println("INFORMACION: " + informacion);
             System.out.println("IMPRESORA: " + impresora);
             System.out.println("AMBIENTE: " + ambiente);//a=QA, b=PRODUCTIVO
             System.out.println("FORMATO PRECIO: " + formatoPrecio);
+            System.out.println("REPORTE: " + reporte);
 
         } catch (FileNotFoundException e) {
             JOptionPane.showMessageDialog(null, "No se ha encontrado el archivo de configuración" + e, "FileNotFoundException", JOptionPane.ERROR_MESSAGE);
@@ -74,19 +82,8 @@ public class Configuracion {
     }
 
     public static void guardarInformacionEnArchivo(String valor) {
-        Properties propiedades = new Properties();
-
-        try (InputStream entrada = new FileInputStream(url)) {
-            propiedades.load(entrada);
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "Error al leer el archivo: " + e, "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        propiedades.setProperty("informacion", valor);
-
-        try (OutputStream salida = new FileOutputStream(url)) {
-            propiedades.store(salida, null);
+        try {
+            ConfigManager.saveInformation(valor);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Error al guardar en el archivo: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -168,44 +165,6 @@ public class Configuracion {
 
         // Usar los primeros 256 bits (32 bytes) para crear la clave secreta
         return new SecretKeySpec(claveBytes, "AES");
-    }
-
-    // Método principal de prueba
-    public static void main(String[] args) {
-        try {
-
-            // Generar una clave fija a partir de una cadena
-            SecretKey secretKey = generateFixedSecretKey(key);
-            //Artemisa
-            // Imprimir la clave en formato hexadecimal (solo para visualización)
-            byte[] claveBytes = secretKey.getEncoded();
-            StringBuilder sb = new StringBuilder();
-            for (byte b : claveBytes) {
-                sb.append(String.format("%02x", b));
-            }
-
-            System.out.println("Clave secreta fija (en formato hexadecimal): " + sb.toString());
-
-            // Fechas de inicio y fin de ejemplo
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            Date fechaInicio = dateFormat.parse("2025-04-01 00:00:00");
-            Date fechaFin = dateFormat.parse("2025-12-31 23:59:59");
-            Date fechaHoy = new Date();
-            dateFormat.format(fechaHoy);
-
-            // Encriptar las fechas
-            String encryptedData = encryptDates(fechaInicio, fechaFin, secretKey);
-            System.out.println("Datos encriptados: " + encryptedData);
-
-            // Desencriptar las fechas
-            Date[] decryptedDates = decryptDates(encryptedData, secretKey);
-            System.out.println("Fecha de inicio desencriptada: " + dateFormat.format(decryptedDates[0]));
-            System.out.println("Fecha de fin desencriptada: " + dateFormat.format(decryptedDates[1]));
-            System.out.println("" + dateFormat.format(fechaHoy));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
 }

@@ -5,7 +5,6 @@
 	<property name="ireport.y" value="0"/>
 	<field name="IDENTIFICACION" class="java.lang.String"/>
 	<field name="CODIGO_BARRAS" class="java.lang.String"/>
-	<field name="CODIGO_BARRAS_TEXTO" class="java.lang.String"/>
 	<field name="PRECIO_VENTA" class="java.lang.String"/>
 	<field name="DESCRIPCION" class="java.lang.String"/>
 	<field name="FECHA" class="java.lang.String"/>
@@ -38,7 +37,7 @@
 				<textElement textAlignment="Center">
 					<font fontName="Arial Black" size="6" isBold="false"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{CODIGO_BARRAS_TEXTO}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{CODIGO_BARRAS}]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="0" y="0" width="194" height="18" uuid="50756ac3-8b06-49b1-892b-a7c2647fe280"/>

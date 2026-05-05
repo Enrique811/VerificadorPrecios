@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+ name="Etiqueta_Precio_120x60mm_120x60cm_Barcode" printOrder="Horizontal"
+ pageWidth="340" pageHeight="170" columnWidth="336"
+ leftMargin="2" rightMargin="2" topMargin="2" bottomMargin="2">
+</jasperReport>

@@ -1,19 +1,25 @@
 package Conexion;
 
+import Metodos.ConfigManager;
 import Metodos.Configuracion;
-import static Metodos.Configuracion.decryptDates;
-import static SQL.SQLFechaHora.obtenerFechayHoraActualDelServidorDate;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import Metodos.LicenseJsonValidator;
+import Metodos.LicenseValidationResult;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
@@ -24,13 +30,14 @@ public class Conexion {
     private static final String PASSWORD = "masterkey";
     private static final String CHARSET_SUFFIX = "?lc_ctype=ISO8859_1";
     private static final String CONNECTION_ERROR_MESSAGE = "ERROR AL CONECTARSE CON LA BASE DE DATOS ... EL PROGRAMA FINALIZARA, Y EJECUTE NUEVAMENTE   ";
-    private static final String LICENSE_EXPIRED_MESSAGE = "LA LICENCIA A EXPIRADO O VERIFICAR CONFIGURACION DE FECHA Y HORA";
-    private static final String LICENSE_READ_ERROR_MESSAGE = "ERROR AL LEER LICENCIA";
+    private static final int LOGIN_TIMEOUT_SECONDS = 5;
+    private static final DateTimeFormatter LOG_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public static String driver = DRIVER;
     public static String url = null;
     public static String usuario = USER;
     public static String password = PASSWORD;
+    private static String ultimoErrorConexion = "";
 
     public static Connection conexion = null;
     public static PreparedStatement preparacion = null;
@@ -46,6 +53,8 @@ public class Conexion {
             }
 
             Class.forName(driver);
+            usuario = obtenerUsuarioConfigurado();
+            password = obtenerPasswordConfigurado();
             url = construirUrlConexion();
             conexion = DriverManager.getConnection(url, usuario, password);
             System.out.println(url);
@@ -55,33 +64,28 @@ public class Conexion {
         }
     }
 
-    public static void tieneLicenciavalida() {
-        Date fechaHoySistema = new Date();
-        Date fechaHoyServidor = obtenerFechayHoraActualDelServidorDate();
-
+    public static boolean tieneLicenciavalida() {
         if (Configuracion.clave == null || Configuracion.clave.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(null, "No tiene licencia valida");
-            return;
+            JOptionPane.showMessageDialog(null, "Importe o capture la licencia JSON en configuracion.");
+            return false;
         }
 
-        try {
-            SecretKey secretKey = generateFixedSecretKey(Configuracion.key);
-            Date[] decryptedDates = decryptDates(Configuracion.clave, secretKey);
-
-            boolean licenciaVigenteSistema = isFechaDentroDelRango(fechaHoySistema, decryptedDates[0], decryptedDates[1]);
-            boolean licenciaVigenteServidor = fechaHoyServidor != null
-                    && isFechaDentroDelRango(fechaHoyServidor, decryptedDates[0], decryptedDates[1]);
-
-            if (!licenciaVigenteSistema || !licenciaVigenteServidor) {
-                mostrarErrorFatal(LICENSE_EXPIRED_MESSAGE + Configuracion.rutaEmpresa);
-                System.exit(0);
-            }
-
-            imprimirRangoLicencia(decryptedDates[0], decryptedDates[1], fechaHoySistema);
-        } catch (Exception ex) {
-            mostrarErrorFatal(LICENSE_READ_ERROR_MESSAGE);
+        LicenseValidationResult result = LicenseJsonValidator.validate(Configuracion.clave);
+        imprimirDiagnosticoLicencia(result);
+        if (!result.isLicenciaValida()) {
+            mostrarErrorFatal(result.buildSummary());
             System.exit(0);
+            return false;
         }
+
+        Date fechaHoyServidor = result.getFechaServidor();
+        if (!isFechaDentroDelRango(fechaHoyServidor, result.getFechaInicio(), result.getFechaFin())) {
+            mostrarErrorFatal(result.buildSummary());
+            System.exit(0);
+            return false;
+        }
+
+        return true;
     }
 
     public static boolean isFechaDentroDelRango(Date fechaActual, Date fechaInicio, Date fechaFin) {
@@ -91,12 +95,6 @@ public class Conexion {
 
         return (fechaActual.after(fechaInicio) || fechaActual.equals(fechaInicio))
                 && (fechaActual.before(fechaFin) || fechaActual.equals(fechaFin));
-    }
-
-    public static SecretKey generateFixedSecretKey(String clave) throws NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] claveBytes = digest.digest(clave.getBytes());
-        return new SecretKeySpec(claveBytes, "AES");
     }
 
     public static void DesconectarBDEmpresa() {
@@ -117,23 +115,134 @@ public class Conexion {
         cerrarPreparacion();
     }
 
+    public static boolean probarConexion(ConfigManager config) {
+        if (config == null || !config.configCompleta()) {
+            ultimoErrorConexion = "La configuracion esta incompleta.";
+            return false;
+        }
+
+        String ipEmpresa = config.get("ipEmpresa").trim();
+        String rutaEmpresa = config.get("rutaEmpresa").trim();
+        String usuarioConfig = config.get("usuario").trim();
+        String passwordConfig = config.get("password");
+        String urlConexion = buildFirebirdUrl(ipEmpresa, rutaEmpresa);
+
+        Connection conexionPrueba = null;
+        try {
+            Class.forName(driver);
+            DriverManager.setLoginTimeout(LOGIN_TIMEOUT_SECONDS);
+            conexionPrueba = DriverManager.getConnection(urlConexion, usuarioConfig, passwordConfig);
+            ultimoErrorConexion = "";
+            return true;
+        } catch (ClassNotFoundException | SQLException ex) {
+            ultimoErrorConexion = buildConnectionErrorMessage(urlConexion, ex);
+            registrarErrorConexion(ultimoErrorConexion, ex);
+            return false;
+        } finally {
+            DriverManager.setLoginTimeout(0);
+            if (conexionPrueba != null) {
+                try {
+                    conexionPrueba.close();
+                } catch (SQLException ex) {
+                    System.err.println("No se pudo cerrar la conexion de prueba: " + ex.getMessage());
+                }
+            }
+        }
+    }
+
     private static boolean estaConexionActiva() throws SQLException {
         return conexion != null && !conexion.isClosed();
     }
 
-    private static String construirUrlConexion() {
-        return "jdbc:firebirdsql://" + Configuracion.ipEmpresa + "/" + Configuracion.rutaEmpresa + CHARSET_SUFFIX;
+    public static String getUltimoErrorConexion() {
+        return ultimoErrorConexion == null ? "" : ultimoErrorConexion;
     }
 
-    private static void imprimirRangoLicencia(Date fechaInicio, Date fechaFin, Date fechaHoy) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        System.out.println("Fecha de inicio desencriptada: " + dateFormat.format(fechaInicio));
-        System.out.println("Fecha de fin desencriptada: " + dateFormat.format(fechaFin));
-        System.out.println(dateFormat.format(fechaHoy));
+    private static String construirUrlConexion() {
+        return buildFirebirdUrl(Configuracion.ipEmpresa, Configuracion.rutaEmpresa);
+    }
+
+    private static String buildFirebirdUrl(String ipEmpresa, String rutaEmpresa) {
+        String host = ipEmpresa == null ? "" : ipEmpresa.trim();
+        String databasePath = normalizeDatabasePath(rutaEmpresa);
+        return "jdbc:firebirdsql://" + host + "/" + databasePath + CHARSET_SUFFIX;
+    }
+
+    private static String normalizeDatabasePath(String rutaEmpresa) {
+        if (rutaEmpresa == null) {
+            return "";
+        }
+
+        return rutaEmpresa.trim().replace('\\', '/');
+    }
+
+    private static String obtenerUsuarioConfigurado() {
+        if (Configuracion.usuario == null || Configuracion.usuario.trim().isEmpty()) {
+            return USER;
+        }
+        return Configuracion.usuario.trim();
+    }
+
+    private static String obtenerPasswordConfigurado() {
+        if (Configuracion.password == null || Configuracion.password.isEmpty()) {
+            return PASSWORD;
+        }
+        return Configuracion.password;
+    }
+
+    private static void imprimirDiagnosticoLicencia(LicenseValidationResult result) {
+        if (result == null) {
+            return;
+        }
+        System.out.println(result.buildSummary());
     }
 
     private static void mostrarErrorFatal(String mensaje) {
         JOptionPane.showMessageDialog(PanelMensaje, mensaje);
+    }
+
+    private static String buildConnectionErrorMessage(String urlConexion, Exception ex) {
+        String message = ex.getMessage();
+        if (message == null || message.trim().isEmpty()) {
+            message = ex.getClass().getName();
+        }
+        return "URL: " + urlConexion + " | Error: " + message;
+    }
+
+    private static void registrarErrorConexion(String resumen, Exception ex) {
+        try {
+            Path logPath = resolveConnectionLogPath();
+            Files.createDirectories(logPath.getParent());
+
+            StringWriter stackTraceWriter = new StringWriter();
+            PrintWriter printWriter = new PrintWriter(stackTraceWriter);
+            try {
+                ex.printStackTrace(printWriter);
+            } finally {
+                printWriter.close();
+            }
+
+            String contenido = "[" + LocalDateTime.now().format(LOG_TIMESTAMP) + "] "
+                    + resumen + System.lineSeparator()
+                    + stackTraceWriter.toString()
+                    + System.lineSeparator();
+
+            Files.write(logPath,
+                    contenido.getBytes(StandardCharsets.UTF_8),
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND);
+        } catch (IOException ioEx) {
+            System.err.println("No se pudo registrar el error de conexion: " + ioEx.getMessage());
+        }
+    }
+
+    private static Path resolveConnectionLogPath() {
+        File configFile = new File(ConfigManager.getConfigPath());
+        File configDir = configFile.getParentFile();
+        if (configDir == null) {
+            configDir = new File(System.getProperty("user.dir"));
+        }
+        return new File(new File(configDir, "logs"), "conexion.log").toPath();
     }
 
     private static void cerrarResultado() {
