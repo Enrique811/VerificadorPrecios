@@ -1,6 +1,5 @@
 package Metodos;
 
-import static SQL.SQLFechaHora.obtenerFechayHoraActualDelServidorDate;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,6 +35,10 @@ public final class LicenseJsonValidator {
     }
 
     public static LicenseValidationResult validate(String licenseInput) {
+        return validate(licenseInput, null);
+    }
+
+    public static LicenseValidationResult validate(String licenseInput, Date fechaServidor) {
         if (licenseInput == null || licenseInput.trim().isEmpty()) {
             return invalidResult(null, null, null, null, null, null, false, false, false, false,
                     false, false, "No se configuro la licencia.");
@@ -50,8 +53,8 @@ public final class LicenseJsonValidator {
             boolean uuidValido = uuidLocal != null
                     && !uuidLocal.isEmpty()
                     && payload.uuid.equals(normalizeUuid(uuidLocal));
-            Date fechaServidor = obtenerFechayHoraActualDelServidorDate();
-            VigenciaEstado vigencia = evaluarVigencia(payload.fechaInicio, payload.fechaFin, fechaServidor);
+            Date fechaServidorEvaluacion = fechaServidor == null ? null : new Date(fechaServidor.getTime());
+            VigenciaEstado vigencia = evaluarVigencia(payload.fechaInicio, payload.fechaFin, fechaServidorEvaluacion);
 
             String mensajeError = null;
             if (!firmaValida) {
@@ -70,7 +73,7 @@ public final class LicenseJsonValidator {
                     uuidLocal,
                     payload.fechaInicio,
                     payload.fechaFin,
-                    fechaServidor,
+                    fechaServidorEvaluacion,
                     firmaValida,
                     uuidValido,
                     vigencia.vigente,

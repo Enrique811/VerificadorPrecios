@@ -1,20 +1,16 @@
 package Ventanas;
 
-import Conexion.Conexion;
+import App.ApplicationContext;
 import Metodos.BuildInfo;
-import Metodos.DatosReporte;
 import Metodos.PrecioFormatter;
-import Metodos.ReporteManager;
 import aplicacion.ArticuloService;
 import aplicacion.ConfigService;
-import aplicacion.ServerClockService;
-import com.project.barcode.newimpl.BarcodeFacade;
-import com.project.barcode.newimpl.BarcodeResult;
+import aplicacion.impresion.LabelPrintRequest;
+import aplicacion.impresion.LabelPrintResult;
+import aplicacion.impresion.LabelPrintService;
+import aplicacion.licencia.LicenseValidationService;
 import dominio.ArticuloDetalle;
 import dominio.ConfiguracionApp;
-import infraestructura.LegacyConfigRepository;
-import infraestructura.SqlArticuloRepository;
-import infraestructura.SqlServerClockRepository;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -56,19 +52,9 @@ import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
-import net.sf.jasperreports.engine.JRDataSource;
-import net.sf.jasperreports.engine.JRException;
-import net.sf.jasperreports.engine.JasperFillManager;
-import net.sf.jasperreports.engine.JasperPrint;
-import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
-import net.sf.jasperreports.engine.export.JRPrintServiceExporter;
-import net.sf.jasperreports.export.SimpleExporterInput;
-import net.sf.jasperreports.export.SimplePrintServiceExporterConfiguration;
-import net.sf.jasperreports.view.JasperViewer;
 
 public class VentanaInicio extends JFrame {
 
-    private static final BarcodeFacade BARCODE_FACADE = new BarcodeFacade();
     private static final int ANCHO_SIDEBAR = 320;
     private static final int ALTURA_HEADER = 108;
     private static final int ALTURA_FOOTER = 92;
@@ -112,13 +98,20 @@ public class VentanaInicio extends JFrame {
     private JPanel tarjetaCaptura;
     private JPanel tarjetaDetalle;
     private JPanel tarjetaPrecio;
-    private final ArticuloService articuloService = new ArticuloService(new SqlArticuloRepository());
-    private final ConfigService configService = new ConfigService(new LegacyConfigRepository());
-    private final ServerClockService serverClockService = new ServerClockService(new SqlServerClockRepository());
+    private final ApplicationContext applicationContext;
+    private final ArticuloService articuloService;
+    private final ConfigService configService;
+    private final LicenseValidationService licenseValidationService;
+    private final LabelPrintService labelPrintService;
     private ArticuloDetalle articuloActual;
     private ConfiguracionApp configuracionActual;
 
-    public VentanaInicio() {
+    public VentanaInicio(ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
+        this.articuloService = applicationContext.getArticuloService();
+        this.configService = applicationContext.getConfigService();
+        this.licenseValidationService = applicationContext.getLicenseValidationService();
+        this.labelPrintService = applicationContext.getLabelPrintService();
         initComponents();
         aplicarLogoApp();
         recargarConfiguracionActual();
@@ -554,12 +547,12 @@ public class VentanaInicio extends JFrame {
     }
 
     private void abrirBusqueda() {
-        BusquedaDialog dialogo = new BusquedaDialog(this, true);
+        BusquedaDialog dialogo = new BusquedaDialog(this, true, applicationContext);
         dialogo.setVisible(true);
     }
 
     private void abrirConfiguracion() {
-        ConfiguracionWindow configuracionWindow = new ConfiguracionWindow(this, true);
+        ConfiguracionWindow configuracionWindow = new ConfiguracionWindow(this, true, applicationContext);
         configuracionWindow.setVisible(true);
     }
 
@@ -571,7 +564,7 @@ public class VentanaInicio extends JFrame {
                 recargarConfiguracionActual();
                 if (configuracionActual != null && configuracionActual.getClave() != null
                         && !configuracionActual.getClave().trim().isEmpty()) {
-                    Conexion.tieneLicenciavalida();
+                    licenseValidationService.validarLicenciaActual();
                 } else {
                     JOptionPane.showMessageDialog(this, "Debe capturar una licencia para continuar.");
                     dispose();
@@ -581,7 +574,7 @@ public class VentanaInicio extends JFrame {
             return;
         }
 
-        Conexion.tieneLicenciavalida();
+        licenseValidationService.validarLicenciaActual();
     }
 
     private void consultarArticulo() {
@@ -692,76 +685,19 @@ public class VentanaInicio extends JFrame {
     }
 
     private void imprimirEtiqueta() {
-        try {
-            String codigoOriginal = articuloActual == null || articuloActual.getCodigoBarras() == null
-                    ? ""
-                    : articuloActual.getCodigoBarras().trim();
-            if (codigoOriginal.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No hay codigo de barras para imprimir.");
+        LabelPrintResult result = labelPrintService.print(new LabelPrintRequest(
+                articuloActual,
+                descripcion.getText(),
+                precio.getText(),
+                informacion.getText(),
+                configuracionActual));
+        if (!result.isSuccess()) {
+            if ("No se pudo generar el codigo de barras".equals(result.getMessage())
+                    || "No se pudo generar la etiqueta".equals(result.getMessage())) {
+                ToastNotification.showError(this, result.getMessage(), 2200);
                 return;
             }
-            BarcodeResult barcodeResult = BARCODE_FACADE.generateBarcodeResult(codigoOriginal);
-            byte[] barcodeBytes = barcodeResult.getImageBytes();
-            if (barcodeBytes.length == 0) {
-                ToastNotification.showError(this, "No se pudo generar el codigo de barras", 2200);
-                return;
-            }
-            String reporteConfigurado = configuracionActual == null ? "" : configuracionActual.getReporte();
-            String reporteSeleccionado = ReporteManager.resolverReporteConfigurado(reporteConfigurado);
-            String rutaReporte = ReporteManager.obtenerRutaReporteSeleccionado(reporteSeleccionado);
-            if (rutaReporte == null) {
-                JOptionPane.showMessageDialog(this, "No se encontro un reporte .jasper valido en /reportes.");
-                return;
-            }
-
-            ArrayList<DatosReporte> parametros = new ArrayList<DatosReporte>();
-            parametros.add(new DatosReporte(barcodeBytes,
-                    codigoOriginal,
-                    barcodeResult.isCode128(),
-                    codigoOriginal,
-                    descripcion.getText(),
-                    precio.getText(),
-                    serverClockService.obtenerFechaActual(),
-                    informacion.getText()));
-
-            JRDataSource dataSource = new JRBeanCollectionDataSource(parametros);
-            JasperPrint informe = JasperFillManager.fillReport(rutaReporte, null, dataSource);
-
-            if (configuracionActual != null && "a".equalsIgnoreCase(configuracionActual.getAmbiente())) {
-                mostrarVistaPreviaJasper(informe);
-            } else if (configuracionActual != null && "b".equalsIgnoreCase(configuracionActual.getAmbiente())) {
-                PrintService[] services = PrintServiceLookup.lookupPrintServices(null, null);
-                PrintService impresoraSeleccionada = null;
-
-                for (PrintService service : services) {
-                    if (service.getName().equalsIgnoreCase(configuracionActual.getImpresora())) {
-                        impresoraSeleccionada = service;
-                        break;
-                    }
-                }
-
-                if (impresoraSeleccionada != null) {
-                    JRPrintServiceExporter exportador = new JRPrintServiceExporter();
-                    exportador.setExporterInput(new SimpleExporterInput(informe));
-
-                    SimplePrintServiceExporterConfiguration config = new SimplePrintServiceExporterConfiguration();
-                    config.setPrintService(impresoraSeleccionada);
-                    config.setPrintRequestAttributeSet(new javax.print.attribute.HashPrintRequestAttributeSet());
-                    config.setDisplayPageDialog(false);
-                    config.setDisplayPrintDialog(false);
-
-                    exportador.setConfiguration(config);
-                    exportador.exportReport();
-                } else {
-                    JOptionPane.showMessageDialog(this, "No se encontro la impresora: " + configuracionActual.getImpresora());
-                }
-            } else {
-                String ambienteActual = configuracionActual == null ? "" : configuracionActual.getAmbiente();
-                JOptionPane.showMessageDialog(this, "Configurar ambiente: " + ambienteActual);
-            }
-        } catch (JRException ex) {
-            ex.printStackTrace(System.out);
-            ToastNotification.showError(this, "No se pudo generar la etiqueta", 2200);
+            JOptionPane.showMessageDialog(this, result.getMessage());
         }
     }
 
@@ -778,16 +714,6 @@ public class VentanaInicio extends JFrame {
             JOptionPane.showMessageDialog(this, "Error al guardar en el archivo: " + ex,
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private void mostrarVistaPreviaJasper(JasperPrint informe) {
-        JasperViewer viewer = new JasperViewer(informe, false);
-        viewer.setTitle("Vista previa de etiqueta");
-        viewer.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        viewer.getRootPane().registerKeyboardAction(e -> viewer.dispose(),
-                KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
-                JComponent.WHEN_IN_FOCUSED_WINDOW);
-        viewer.setVisible(true);
     }
 
     private void Close() {

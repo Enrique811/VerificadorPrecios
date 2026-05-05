@@ -4,9 +4,9 @@ import Metodos.LicenseJsonValidator;
 import Metodos.LicenseValidationResult;
 import Metodos.PrinterUtils;
 import Metodos.ReporteManager;
+import App.ApplicationContext;
 import aplicacion.ConfigService;
 import dominio.ConfiguracionApp;
-import infraestructura.LegacyConfigRepository;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -70,11 +70,12 @@ public class ConfiguracionWindow extends JDialog {
     private JComboBox<String> comboReporte;
 
     private final VentanaInicio ownerFrame;
-    private final ConfigService configService = new ConfigService(new LegacyConfigRepository());
+    private final ConfigService configService;
 
-    public ConfiguracionWindow(Frame owner, boolean modal) {
+    public ConfiguracionWindow(Frame owner, boolean modal, ApplicationContext applicationContext) {
         super(owner, modal);
         this.ownerFrame = owner instanceof VentanaInicio ? (VentanaInicio) owner : null;
+        this.configService = applicationContext.getConfigService();
         initComponents();
         cargarConfiguracion();
     }

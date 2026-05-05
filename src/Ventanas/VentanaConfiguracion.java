@@ -1,10 +1,10 @@
 package Ventanas;
 
 import App.Main;
-import Conexion.Conexion;
+import App.ApplicationContext;
 import aplicacion.ConfigService;
+import aplicacion.conexion.ConnectionCheckResult;
 import dominio.ConfiguracionApp;
-import infraestructura.LegacyConfigRepository;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -58,9 +58,12 @@ public class VentanaConfiguracion extends JFrame {
     private JButton botonRutaEmpresa;
     private JButton botonCopiarUuid;
     private JButton botonGuardar;
-    private final ConfigService configService = new ConfigService(new LegacyConfigRepository());
+    private final ApplicationContext applicationContext;
+    private final ConfigService configService;
 
-    public VentanaConfiguracion() {
+    public VentanaConfiguracion(ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
+        this.configService = applicationContext.getConfigService();
         initComponents();
         cargarConfiguracionActual();
         setLocationRelativeTo(null);
@@ -234,7 +237,10 @@ public class VentanaConfiguracion extends JFrame {
                     return null;
                 }
 
-                return Boolean.valueOf(Conexion.probarConexion(new Metodos.ConfigManager()));
+                ConnectionCheckResult result = applicationContext.getConnectionCheckService()
+                        .check(new Metodos.ConfigManager());
+                saveErrorMessage = result.getMessage();
+                return Boolean.valueOf(result.isSuccess());
             }
 
             @Override
@@ -264,7 +270,7 @@ public class VentanaConfiguracion extends JFrame {
 
                 JOptionPane.showMessageDialog(VentanaConfiguracion.this,
                         "La configuracion se guardo, pero la conexion fallo.\n"
-                        + Conexion.getUltimoErrorConexion()
+                        + saveErrorMessage
                         + "\nVerifique los datos e intente nuevamente.",
                         "Configuracion",
                         JOptionPane.ERROR_MESSAGE);

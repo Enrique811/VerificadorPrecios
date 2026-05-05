@@ -1,7 +1,7 @@
 package App;
 
-import Conexion.Conexion;
 import Metodos.ConfigManager;
+import aplicacion.conexion.ConnectionCheckResult;
 import Ventanas.VentanaConfiguracion;
 import Ventanas.VentanaInicio;
 import javax.swing.JDialog;
@@ -11,6 +11,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 public final class Main {
+
+    private static final ApplicationContext APPLICATION_CONTEXT = new ApplicationContext();
 
     private Main() {
     }
@@ -29,9 +31,12 @@ public final class Main {
 
         final JDialog loadingDialog = createLoadingDialog();
         SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+            private ConnectionCheckResult connectionCheckResult;
+
             @Override
             protected Boolean doInBackground() {
-                return Conexion.probarConexion(config);
+                connectionCheckResult = APPLICATION_CONTEXT.getConnectionCheckService().check(config);
+                return Boolean.valueOf(connectionCheckResult.isSuccess());
             }
 
             @Override
@@ -51,7 +56,7 @@ public final class Main {
 
                 JOptionPane.showMessageDialog(null,
                         "No fue posible conectar con la base de datos.\n"
-                        + Conexion.getUltimoErrorConexion()
+                        + (connectionCheckResult == null ? "" : connectionCheckResult.getMessage())
                         + "\nRevise la configuracion e intente nuevamente.");
                 abrirVentanaConfiguracion();
             }
@@ -61,11 +66,11 @@ public final class Main {
     }
 
     public static void abrirVentanaInicio() {
-        new VentanaInicio().setVisible(true);
+        new VentanaInicio(APPLICATION_CONTEXT).setVisible(true);
     }
 
     public static void abrirVentanaConfiguracion() {
-        new VentanaConfiguracion().setVisible(true);
+        new VentanaConfiguracion(APPLICATION_CONTEXT).setVisible(true);
     }
 
     private static JDialog createLoadingDialog() {

@@ -1,9 +1,9 @@
 package Ventanas;
 
+import App.ApplicationContext;
 import Metodos.Articulos;
 import Metodos.PrecioFormatter;
 import aplicacion.ArticuloService;
-import infraestructura.SqlArticuloRepository;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -69,11 +69,12 @@ public class BusquedaDialog extends JDialog {
     private JPanel overlay;
     private ComponentAdapter overlayResizeListener;
     private final VentanaInicio ownerFrame;
-    private final ArticuloService articuloService = new ArticuloService(new SqlArticuloRepository());
+    private final ArticuloService articuloService;
 
-    public BusquedaDialog(java.awt.Frame owner, boolean modal) {
+    public BusquedaDialog(java.awt.Frame owner, boolean modal, ApplicationContext applicationContext) {
         super(owner, modal);
         this.ownerFrame = owner instanceof VentanaInicio ? (VentanaInicio) owner : null;
+        this.articuloService = applicationContext.getArticuloService();
         initComponents();
         configurarDialogo();
     }
