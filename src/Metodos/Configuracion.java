@@ -42,6 +42,7 @@ public class Configuracion {
     public static String ambiente;
     public static String formatoPrecio;
     public static String reporte;
+    public static boolean mostrarDesgloseImpuestos;
      
     private static String url = ConfigManager.getConfigPath();
     public static String key = "K7m2X9qLp4";
@@ -60,6 +61,7 @@ public class Configuracion {
             ambiente = propiedades.getProperty("ambiente");
             formatoPrecio = propiedades.getProperty("formatoPrecio", "CO");
             reporte = ReporteManager.resolverReporteConfigurado(propiedades.getProperty("reporte", ""));
+            mostrarDesgloseImpuestos = "1".equals(propiedades.getProperty("mostrar_desglose_impuestos", "0"));
 
             System.out.println("IP EMPRESA: " + ipEmpresa);
             System.out.println("RUTA EMPRESA: " + rutaEmpresa);
@@ -71,6 +73,7 @@ public class Configuracion {
             System.out.println("AMBIENTE: " + ambiente);//a=QA, b=PRODUCTIVO
             System.out.println("FORMATO PRECIO: " + formatoPrecio);
             System.out.println("REPORTE: " + reporte);
+            System.out.println("MOSTRAR DESGLOSE IMPUESTOS: " + (mostrarDesgloseImpuestos ? "1" : "0"));
 
         } catch (FileNotFoundException e) {
             JOptionPane.showMessageDialog(null, "No se ha encontrado el archivo de configuración" + e, "FileNotFoundException", JOptionPane.ERROR_MESSAGE);

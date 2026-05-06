@@ -23,6 +23,7 @@ public final class ConfigManager {
             + "impresora=\n"
             + "informacion=\n"
             + "ipEmpresa=bG9jYWxob3N0\n"
+            + "mostrar_desglose_impuestos=0\n"
             + "password=bWFzdGVya2V5\n"
             + "reporte=\n"
             + "rutaEmpresa=\n"
@@ -41,7 +42,7 @@ public final class ConfigManager {
         Properties decodedProperties = new Properties();
         for (String key : rawProperties.stringPropertyNames()) {
             String value = rawProperties.getProperty(key, "");
-            decodedProperties.setProperty(key, "clave".equals(key) ? value : decodeBase64(value));
+            decodedProperties.setProperty(key, shouldStorePlainText(key) ? value : decodeBase64(value));
         }
         return decodedProperties;
     }
@@ -96,7 +97,7 @@ public final class ConfigManager {
     }
 
     public static void saveConfiguration(String ambiente, String clave, String impresora,
-            String formatoPrecio, String reporte) throws IOException {
+            String formatoPrecio, String reporte, boolean mostrarDesgloseImpuestos) throws IOException {
         ensureConfigFileExists();
         Properties current = loadProperties();
         current.setProperty("ambiente", ambiente);
@@ -104,6 +105,7 @@ public final class ConfigManager {
         current.setProperty("impresora", impresora);
         current.setProperty("formatoPrecio", formatoPrecio);
         current.setProperty("reporte", reporte);
+        current.setProperty("mostrar_desglose_impuestos", mostrarDesgloseImpuestos ? "1" : "0");
 
         if (!current.containsKey("rutaEmpresa")) {
             current.setProperty("rutaEmpresa", "");
@@ -185,7 +187,7 @@ public final class ConfigManager {
         Properties encodedProperties = new Properties();
         for (String key : decodedProperties.stringPropertyNames()) {
             String value = decodedProperties.getProperty(key, "");
-            encodedProperties.setProperty(key, "clave".equals(key) ? value : encodeBase64(value));
+            encodedProperties.setProperty(key, shouldStorePlainText(key) ? value : encodeBase64(value));
         }
 
         OutputStreamWriter output = null;
@@ -240,5 +242,9 @@ public final class ConfigManager {
         } catch (IllegalArgumentException ex) {
             return value;
         }
+    }
+
+    private static boolean shouldStorePlainText(String key) {
+        return "clave".equals(key) || "mostrar_desglose_impuestos".equals(key);
     }
 }

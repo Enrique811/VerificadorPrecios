@@ -39,6 +39,7 @@ import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.WindowConstants;
+import javax.swing.JCheckBox;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
@@ -68,6 +69,7 @@ public class ConfiguracionWindow extends JDialog {
     private JLabel etiquetaArchivoLicencia;
     private JComboBox<String> comboImpresora;
     private JComboBox<String> comboReporte;
+    private JCheckBox checkMostrarDesglose;
 
     private final VentanaInicio ownerFrame;
 
@@ -187,6 +189,13 @@ public class ConfiguracionWindow extends JDialog {
 
         comboReporte = crearComboBox();
         tarjeta.add(crearCampoFormulario("Reporte", comboReporte));
+        tarjeta.add(javax.swing.Box.createVerticalStrut(10));
+
+        checkMostrarDesglose = new JCheckBox("Mostrar desglose");
+        checkMostrarDesglose.setOpaque(false);
+        checkMostrarDesglose.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        checkMostrarDesglose.setForeground(COLOR_TITULO);
+        tarjeta.add(crearCampoFormulario("Visual", checkMostrarDesglose));
 
         return tarjeta;
     }
@@ -316,6 +325,7 @@ public class ConfiguracionWindow extends JDialog {
 
     private void cargarConfiguracion() {
         try {
+            Configuracion.leerArchivoDePropiedades();
             Properties properties = ConfigManager.loadProperties();
             seleccionarAmbiente(properties.getProperty("ambiente", "a"));
             seleccionarFormatoPrecio(properties.getProperty("formatoPrecio", "CO"));
@@ -323,6 +333,7 @@ public class ConfiguracionWindow extends JDialog {
             actualizarFechasLicencia();
             cargarImpresoras(properties.getProperty("impresora", ""));
             cargarReportes(properties.getProperty("reporte", ""));
+            checkMostrarDesglose.setSelected(Configuracion.mostrarDesgloseImpuestos);
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this,
                     "No se pudo leer el archivo de configuraci\u00f3n.\n" + ex.getMessage(),
@@ -432,7 +443,8 @@ public class ConfiguracionWindow extends JDialog {
                     clave,
                     impresora,
                     formatoSeleccionado != null ? formatoSeleccionado.codigo : "CO",
-                    reporte);
+                    reporte,
+                    checkMostrarDesglose.isSelected());
 
             Configuracion.leerArchivoDePropiedades();
             if (ownerFrame != null) {
@@ -441,7 +453,7 @@ public class ConfiguracionWindow extends JDialog {
 
             ToastNotification.showSuccess(this, "Configuraci\u00f3n guardada correctamente", 2000);
             dispose();
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
                     "No se pudo guardar la configuraci\u00f3n.\n" + ex.getMessage(),
                     "Configuraci\u00f3n",

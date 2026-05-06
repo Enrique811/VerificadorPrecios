@@ -7,9 +7,18 @@ package SQL;
 
 import Conexion.Conexion;
 import Metodos.Articulos;
+import Metodos.CalculadoraImpuestos;
 import Metodos.Configuracion;
+import Metodos.DetalleImpuesto;
+import Metodos.ImpuestoInfo;
+import Metodos.ResultadoCalculoImpuestos;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import javax.swing.JOptionPane;
 
 /**
@@ -24,7 +33,10 @@ public class SQLArticulo {
     public static String descripcion;
     public static String presentacion;
     public static String formato;
-    public static String precio_venta_iva;
+    public static BigDecimal precio_venta_base;
+    public static BigDecimal precio_venta_final;
+    public static String impuestos;
+    public static String desglose_impuestos;
     public static String familia;
     public static boolean controlConsulta;
 
@@ -38,8 +50,9 @@ public class SQLArticulo {
             + " A.DESCRIPCION AS DESCRIPCION,"
             + " A.TVENTA AS FORMATO,"
             + " A.TVENTA AS PRESENTACION,"
-            + " A.PVENTA AS PRECIO_IVA,"
-            + " B.CANTIDAD_ACTUAL AS STOCK"
+            + " A.PVENTA AS PRECIO_BASE,"
+            + " A.IMPUESTOS AS IMPUESTOS,"
+            + " COALESCE(B.CANTIDAD_ACTUAL, 0) AS STOCK"
             + " FROM PRODUCTOS A"
             + " LEFT JOIN INVENTARIO_BALANCES B ON A.ID = B.PRODUCTO_ID";
 
@@ -54,7 +67,11 @@ public class SQLArticulo {
         descripcion = Conexion.resultado.getString("DESCRIPCION");
         formato = stockSeguro(Conexion.resultado.getString("STOCK"));
         presentacion = Conexion.resultado.getString("PRESENTACION");
-        precio_venta_iva = Conexion.resultado.getString("PRECIO_IVA");
+        precio_venta_base = obtenerPrecioBase(Conexion.resultado.getBigDecimal("PRECIO_BASE"));
+        impuestos = Conexion.resultado.getString("IMPUESTOS");
+        ResultadoCalculoImpuestos resultado = calcularPrecioConImpuestos(precio_venta_base, impuestos);
+        precio_venta_final = resultado.getPrecioFinal();
+        desglose_impuestos = construirDesgloseVisible(resultado);
     }
 
     public static void buscarArticuloPorCodigoBarra(String cod_barras, String tarifa) {
@@ -114,7 +131,10 @@ public class SQLArticulo {
                 descripcion = Conexion.resultado.getString("DESCRIPCION");
                 formato = stockSeguro(Conexion.resultado.getString("STOCK"));
                 presentacion = Conexion.resultado.getString("PRESENTACION");
-                precio_venta_iva = Conexion.resultado.getString("PRECIO_IVA");
+                precio_venta_base = obtenerPrecioBase(Conexion.resultado.getBigDecimal("PRECIO_IVA"));
+                impuestos = null;
+                precio_venta_final = precio_venta_base;
+                desglose_impuestos = "";
                 controlConsulta = true;
             } else {
                 controlConsulta = false;
@@ -146,18 +166,43 @@ public class SQLArticulo {
             Conexion.preparacion.setString(1, descrip + "%");
             Conexion.resultado = Conexion.preparacion.executeQuery();
 
+            ArrayList<FilaArticuloBusqueda> filas = new ArrayList<FilaArticuloBusqueda>();
+            Set<String> idsImpuestos = new HashSet<String>();
+
             while (Conexion.resultado.next()) {
-                Articulos art = new Articulos(
+                BigDecimal precioBase = obtenerPrecioBase(Conexion.resultado.getBigDecimal("PRECIO_BASE"));
+                String impuestosArticulo = Conexion.resultado.getString("IMPUESTOS");
+                List<String> idsFila = parsearIdsImpuestos(impuestosArticulo);
+
+                filas.add(new FilaArticuloBusqueda(
                         Conexion.resultado.getString("CODIGO"),
                         Conexion.resultado.getString("CODIGO_BARRAS"),
                         Conexion.resultado.getString("IDENTIFICACION"),
                         Conexion.resultado.getString("DESCRIPCION"),
                         stockSeguro(Conexion.resultado.getString("STOCK")),
                         Conexion.resultado.getString("PRESENTACION"),
-                        Conexion.resultado.getString("PRECIO_IVA")
-                );
+                        precioBase,
+                        idsFila));
+                idsImpuestos.addAll(idsFila);
+            }
 
-                articulo.add(art);
+            Conexion.cerrarRecursosConsulta();
+            Map<String, ImpuestoInfo> impuestosDisponibles = SQLImpuesto.consultarImpuestosPorIds(
+                    new ArrayList<String>(idsImpuestos));
+
+            for (int i = 0; i < filas.size(); i++) {
+                FilaArticuloBusqueda fila = filas.get(i);
+                ResultadoCalculoImpuestos resultadoCalculo = CalculadoraImpuestos.calcular(
+                        fila.precioBase, fila.idsImpuestos, impuestosDisponibles);
+                articulo.add(new Articulos(
+                        fila.codigo,
+                        fila.codigoBarras,
+                        fila.identificacion,
+                        fila.descripcion,
+                        fila.stock,
+                        fila.presentacion,
+                        resultadoCalculo.getPrecioFinal(),
+                        construirDesgloseVisible(resultadoCalculo)));
                 controlConsulta = true;
             }
         } catch (SQLException e) {
@@ -207,6 +252,85 @@ public class SQLArticulo {
                     JOptionPane.INFORMATION_MESSAGE);
         } finally {
             Conexion.cerrarRecursosConsulta();
+        }
+    }
+
+    private static BigDecimal obtenerPrecioBase(BigDecimal precioBase) {
+        return precioBase == null ? BigDecimal.ZERO : precioBase;
+    }
+
+    private static ResultadoCalculoImpuestos calcularPrecioConImpuestos(BigDecimal precioBase, String impuestosTexto)
+            throws SQLException {
+        List<String> idsImpuestos = parsearIdsImpuestos(impuestosTexto);
+        if (idsImpuestos.isEmpty()) {
+            return new ResultadoCalculoImpuestos(precioBase, precioBase, new ArrayList<DetalleImpuesto>());
+        }
+
+        Map<String, ImpuestoInfo> impuestosDisponibles = SQLImpuesto.consultarImpuestosPorIds(idsImpuestos);
+        return CalculadoraImpuestos.calcular(precioBase, idsImpuestos, impuestosDisponibles);
+    }
+
+    private static List<String> parsearIdsImpuestos(String impuestosTexto) {
+        List<String> ids = new ArrayList<String>();
+        if (impuestosTexto == null || impuestosTexto.trim().isEmpty()) {
+            return ids;
+        }
+
+        String[] partes = impuestosTexto.split(",");
+        for (int i = 0; i < partes.length; i++) {
+            String valor = partes[i] == null ? "" : partes[i].trim();
+            if (!valor.isEmpty() && valor.matches("\\d+")) {
+                ids.add(valor);
+            }
+        }
+        return ids;
+    }
+
+    private static String construirDesgloseVisible(ResultadoCalculoImpuestos resultado) {
+        if (resultado == null || !resultado.tieneDesglose()) {
+            return "";
+        }
+
+        StringBuilder texto = new StringBuilder();
+        List<DetalleImpuesto> detalles = resultado.getDesglose();
+        for (int i = 0; i < detalles.size(); i++) {
+            DetalleImpuesto detalle = detalles.get(i);
+            if (i > 0) {
+                texto.append("\n\n");
+            }
+            texto.append(detalle.getNombre() == null || detalle.getNombre().trim().isEmpty()
+                    ? "Impuesto " + detalle.getImpuestoId()
+                    : detalle.getNombre().trim());
+            texto.append("\nAntes: ").append(Metodos.PrecioFormatter.formatearPrecio(detalle.getSubtotalAntes()));
+            texto.append("\nPorcentaje: ").append(detalle.getPorcentajeAplicado().stripTrailingZeros().toPlainString()).append("%");
+            texto.append("\nImpuesto: ").append(Metodos.PrecioFormatter.formatearPrecio(detalle.getMontoImpuesto()));
+            texto.append("\nDespues: ").append(Metodos.PrecioFormatter.formatearPrecio(detalle.getSubtotalDespues()));
+        }
+        return texto.toString();
+    }
+
+    private static final class FilaArticuloBusqueda {
+
+        private final String codigo;
+        private final String codigoBarras;
+        private final String identificacion;
+        private final String descripcion;
+        private final String stock;
+        private final String presentacion;
+        private final BigDecimal precioBase;
+        private final List<String> idsImpuestos;
+
+        private FilaArticuloBusqueda(String codigo, String codigoBarras, String identificacion,
+                String descripcion, String stock, String presentacion, BigDecimal precioBase,
+                List<String> idsImpuestos) {
+            this.codigo = codigo;
+            this.codigoBarras = codigoBarras;
+            this.identificacion = identificacion;
+            this.descripcion = descripcion;
+            this.stock = stock;
+            this.presentacion = presentacion;
+            this.precioBase = precioBase;
+            this.idsImpuestos = new ArrayList<String>(idsImpuestos);
         }
     }
 

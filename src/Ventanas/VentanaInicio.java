@@ -78,6 +78,9 @@ public class VentanaInicio extends JFrame {
     public static JTextArea descripcion;
     public static JTextArea presentacion;
     public static JTextArea formato;
+    public static JLabel subtotalEtiqueta;
+    public static JLabel subtotalValor;
+    public static JTextArea desgloseImpuestos;
     public static JTextArea noEncontrado;
     public static JLabel precio;
 
@@ -324,6 +327,14 @@ public class VentanaInicio extends JFrame {
         tarjeta.setMaximumSize(new Dimension(ANCHO_SIDEBAR, Integer.MAX_VALUE));
 
         JLabel etiquetaPrecio = crearEtiquetaSeccion("Precio final");
+        subtotalEtiqueta = crearEtiquetaSeccion("Subtotal");
+        subtotalEtiqueta.setVisible(false);
+
+        subtotalValor = new JLabel("$ 0");
+        subtotalValor.setFont(new Font("Segoe UI", Font.PLAIN, 24));
+        subtotalValor.setForeground(COLOR_TEXTO);
+        subtotalValor.setBorder(new EmptyBorder(2, 0, 10, 0));
+        subtotalValor.setVisible(false);
 
         precio = new JLabel("$ 0");
         precio.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 42));
@@ -348,6 +359,16 @@ public class VentanaInicio extends JFrame {
         etiquetaTotales.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         etiquetaTotales.setBorder(new EmptyBorder(10, 2, 10, 2));
 
+        desgloseImpuestos = new JTextArea();
+        desgloseImpuestos.setEditable(false);
+        desgloseImpuestos.setFocusable(false);
+        desgloseImpuestos.setOpaque(false);
+        desgloseImpuestos.setLineWrap(true);
+        desgloseImpuestos.setWrapStyleWord(true);
+        desgloseImpuestos.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        desgloseImpuestos.setForeground(COLOR_TEXTO);
+        desgloseImpuestos.setVisible(false);
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.weightx = 1;
@@ -357,23 +378,35 @@ public class VentanaInicio extends JFrame {
         gbc.gridy = 0;
         gbc.weighty = 0;
         gbc.insets = new Insets(0, 0, 0, 0);
-        tarjeta.add(etiquetaPrecio, gbc);
+        tarjeta.add(subtotalEtiqueta, gbc);
 
         gbc.gridy = 1;
         gbc.insets = new Insets(0, 0, 8, 0);
-        tarjeta.add(precio, gbc);
+        tarjeta.add(subtotalValor, gbc);
 
         gbc.gridy = 2;
-        tarjeta.add(etiquetaAccesos, gbc);
+        gbc.insets = new Insets(0, 0, 0, 0);
+        tarjeta.add(etiquetaPrecio, gbc);
 
         gbc.gridy = 3;
+        gbc.insets = new Insets(0, 0, 8, 0);
+        tarjeta.add(precio, gbc);
+
+        gbc.gridy = 4;
+        gbc.insets = new Insets(0, 0, 12, 0);
+        tarjeta.add(desgloseImpuestos, gbc);
+
+        gbc.gridy = 5;
+        tarjeta.add(etiquetaAccesos, gbc);
+
+        gbc.gridy = 6;
         gbc.weighty = 1;
         gbc.fill = GridBagConstraints.BOTH;
         JPanel separadorFlexible = new JPanel();
         separadorFlexible.setOpaque(false);
         tarjeta.add(separadorFlexible, gbc);
 
-        gbc.gridy = 4;
+        gbc.gridy = 7;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 0, 0, 0);
@@ -605,21 +638,24 @@ public class VentanaInicio extends JFrame {
     }
 
     private void actualizarDesdeArticuloActual() {
-        double precioVentaIva = Double.parseDouble(SQL.SQLArticulo.precio_venta_iva);
-        String precioFormateado = formatearPrecio(precioVentaIva);
+        String subtotalFormateado = formatearPrecio(SQL.SQLArticulo.precio_venta_base);
+        String precioFormateado = formatearPrecio(SQL.SQLArticulo.precio_venta_final);
         actualizarDatosArticulo(SQL.SQLArticulo.descripcion, SQL.SQLArticulo.presentacion,
-                SQL.SQLArticulo.formato, precioFormateado);
+                SQL.SQLArticulo.formato, subtotalFormateado, precioFormateado, SQL.SQLArticulo.desglose_impuestos);
     }
 
-    public static String formatearPrecio(double precioValor) {
+    public static String formatearPrecio(java.math.BigDecimal precioValor) {
         return PrecioFormatter.formatearPrecio(precioValor);
     }
 
-    public final void actualizarDatosArticulo(String descripcionTexto, String presentacionTexto, String existenciaTexto, String precioTexto) {
+    public final void actualizarDatosArticulo(String descripcionTexto, String presentacionTexto,
+            String existenciaTexto, String subtotalTexto, String precioTexto, String desgloseTexto) {
         descripcion.setText(valorVisible(descripcionTexto));
         presentacion.setText(valorVisible(presentacionTexto));
         formato.setText(valorVisible(existenciaTexto));
+        actualizarSubtotal(subtotalTexto);
         precio.setText(valorVisible(precioTexto));
+        actualizarDesgloseImpuestos(desgloseTexto);
         etiquetaTotales.setText(construirTextoMetadataSistema());
     }
 
@@ -627,8 +663,31 @@ public class VentanaInicio extends JFrame {
         descripcion.setText("-");
         presentacion.setText("-");
         formato.setText("-");
+        actualizarSubtotal("");
         precio.setText("$ 0");
+        actualizarDesgloseImpuestos("");
         etiquetaTotales.setText(construirTextoMetadataSistema());
+    }
+
+    private void actualizarSubtotal(String subtotalTexto) {
+        boolean mostrar = Configuracion.mostrarDesgloseImpuestos
+                && subtotalTexto != null
+                && !subtotalTexto.trim().isEmpty();
+        subtotalEtiqueta.setVisible(mostrar);
+        subtotalValor.setVisible(mostrar);
+        subtotalValor.setText(mostrar ? subtotalTexto.trim() : "");
+    }
+
+    private void actualizarDesgloseImpuestos(String desgloseTexto) {
+        boolean mostrar = Configuracion.mostrarDesgloseImpuestos
+                && desgloseTexto != null;
+        String texto = desgloseTexto == null || desgloseTexto.trim().isEmpty()
+                ? "Sin impuestos aplicables"
+                : desgloseTexto.trim();
+        desgloseImpuestos.setText(mostrar ? texto : "");
+        desgloseImpuestos.setVisible(mostrar);
+        desgloseImpuestos.revalidate();
+        desgloseImpuestos.repaint();
     }
 
     private String construirTextoMetadataSistema() {

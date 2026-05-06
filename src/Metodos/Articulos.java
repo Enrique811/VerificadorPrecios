@@ -4,6 +4,8 @@
  */
 package Metodos;
 
+import java.math.BigDecimal;
+
 /**
  *
  * @author gaming
@@ -15,18 +17,20 @@ public class Articulos {
     private String descripcion;
     private String stock;
     private String presentacion;
-    private String precioIva;
+    private BigDecimal precioFinal;
+    private String desgloseImpuestos;
 
     // Constructor
     public Articulos(String codigo, String codigoBarras, String identificacion, String descripcion, 
-                    String stock, String presentacion, String precioIva) {
+                    String stock, String presentacion, BigDecimal precioFinal, String desgloseImpuestos) {
         this.codigo = codigo;
         this.codigoBarras = codigoBarras;
         this.identificacion = identificacion;
         this.descripcion = descripcion;
         this.stock = stock;
         this.presentacion = presentacion;
-        this.precioIva = precioIva;
+        this.precioFinal = precioFinal;
+        this.desgloseImpuestos = desgloseImpuestos;
     }
 
     // Getters y Setters
@@ -78,12 +82,20 @@ public class Articulos {
         this.presentacion = presentacion;
     }
 
-    public String getPrecioIva() {
-        return precioIva;
+    public BigDecimal getPrecioFinal() {
+        return precioFinal;
     }
 
-    public void setPrecioIva(String precioIva) {
-        this.precioIva = precioIva;
+    public void setPrecioFinal(BigDecimal precioFinal) {
+        this.precioFinal = precioFinal;
+    }
+
+    public String getDesgloseImpuestos() {
+        return desgloseImpuestos;
+    }
+
+    public void setDesgloseImpuestos(String desgloseImpuestos) {
+        this.desgloseImpuestos = desgloseImpuestos;
     }
 
     @Override
@@ -95,7 +107,8 @@ public class Articulos {
                 ", descripcion='" + descripcion + '\'' +
                 ", stock='" + stock + '\'' +
                 ", presentacion='" + presentacion + '\'' +
-                ", precioIva='" + precioIva + '\'' +
+                ", precioFinal='" + precioFinal + '\'' +
+                ", desgloseImpuestos='" + desgloseImpuestos + '\'' +
                 '}';
     }
 }

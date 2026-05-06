@@ -345,7 +345,7 @@ public class BusquedaDialog extends JDialog {
         for (int x = 0; x < listaArt.size(); x++) {
             fila[0] = listaArt.get(x).getCodigoBarras();
             fila[1] = listaArt.get(x).getDescripcion();
-            fila[2] = PrecioFormatter.formatearPrecio(Double.parseDouble(listaArt.get(x).getPrecioIva()));
+            fila[2] = PrecioFormatter.formatearPrecio(listaArt.get(x).getPrecioFinal());
             fila[3] = listaArt.get(x).getStock();
             modelo.addRow(fila);
         }
