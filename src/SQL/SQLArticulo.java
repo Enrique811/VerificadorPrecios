@@ -301,10 +301,10 @@ public class SQLArticulo {
             texto.append(detalle.getNombre() == null || detalle.getNombre().trim().isEmpty()
                     ? "Impuesto " + detalle.getImpuestoId()
                     : detalle.getNombre().trim());
-            texto.append("\nAntes: ").append(Metodos.PrecioFormatter.formatearPrecio(detalle.getSubtotalAntes()));
+            texto.append("\nAntes: ").append(Metodos.PrecioFormatter.formatearPrecioDesglose(detalle.getSubtotalAntes()));
             texto.append("\nPorcentaje: ").append(detalle.getPorcentajeAplicado().stripTrailingZeros().toPlainString()).append("%");
-            texto.append("\nImpuesto: ").append(Metodos.PrecioFormatter.formatearPrecio(detalle.getMontoImpuesto()));
-            texto.append("\nDespues: ").append(Metodos.PrecioFormatter.formatearPrecio(detalle.getSubtotalDespues()));
+            texto.append("\nImpuesto: ").append(Metodos.PrecioFormatter.formatearPrecioDesglose(detalle.getMontoImpuesto()));
+            texto.append("\nDespues: ").append(Metodos.PrecioFormatter.formatearPrecioDesglose(detalle.getSubtotalDespues()));
         }
         return texto.toString();
     }

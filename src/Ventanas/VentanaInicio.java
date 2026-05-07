@@ -68,7 +68,7 @@ public class VentanaInicio extends JFrame {
     private static final Dimension TAMANO_MINIMO_VENTANA = new Dimension(1180, 760);
     private static final String RUTA_LOGO = "/Img/logo_icon.png";
     private static final String VERSION = "v1.0.0";
-    private static final String FECHA_ACTUALIZACION = "2026-04-25";
+    private static final String FECHA_ACTUALIZACION = "2026-05-06";
 
     public static boolean controlAdministracion;
     public static boolean controlRutas;
@@ -638,7 +638,7 @@ public class VentanaInicio extends JFrame {
     }
 
     private void actualizarDesdeArticuloActual() {
-        String subtotalFormateado = formatearPrecio(SQL.SQLArticulo.precio_venta_base);
+        String subtotalFormateado = formatearPrecioDesglose(SQL.SQLArticulo.precio_venta_base);
         String precioFormateado = formatearPrecio(SQL.SQLArticulo.precio_venta_final);
         actualizarDatosArticulo(SQL.SQLArticulo.descripcion, SQL.SQLArticulo.presentacion,
                 SQL.SQLArticulo.formato, subtotalFormateado, precioFormateado, SQL.SQLArticulo.desglose_impuestos);
@@ -646,6 +646,10 @@ public class VentanaInicio extends JFrame {
 
     public static String formatearPrecio(java.math.BigDecimal precioValor) {
         return PrecioFormatter.formatearPrecio(precioValor);
+    }
+
+    public static String formatearPrecioDesglose(java.math.BigDecimal precioValor) {
+        return PrecioFormatter.formatearPrecioDesglose(precioValor);
     }
 
     public final void actualizarDatosArticulo(String descripcionTexto, String presentacionTexto,

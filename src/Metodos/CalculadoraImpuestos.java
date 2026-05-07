@@ -1,7 +1,6 @@
 package Metodos;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -9,15 +8,13 @@ import java.util.Map;
 public final class CalculadoraImpuestos {
 
     private static final BigDecimal CIEN = new BigDecimal("100");
-    private static final int ESCALA_CALCULO = 6;
-    private static final int ESCALA_MONEDA = 2;
 
     private CalculadoraImpuestos() {
     }
 
     public static ResultadoCalculoImpuestos calcular(BigDecimal precioBase,
             List<String> impuestosOrdenados, Map<String, ImpuestoInfo> impuestosDisponibles) {
-        BigDecimal subtotal = normalizarMoneda(precioBase);
+        BigDecimal subtotal = valorSeguro(precioBase);
         if (impuestosOrdenados == null || impuestosOrdenados.isEmpty()
                 || impuestosDisponibles == null || impuestosDisponibles.isEmpty()) {
             return new ResultadoCalculoImpuestos(subtotal, subtotal, new ArrayList<DetalleImpuesto>());
@@ -36,21 +33,18 @@ public final class CalculadoraImpuestos {
                     ? BigDecimal.ZERO : impuesto.getPorcentaje();
             BigDecimal montoImpuesto = subtotalAntes
                     .multiply(porcentaje)
-                    .divide(CIEN, ESCALA_CALCULO, RoundingMode.HALF_UP)
-                    .setScale(ESCALA_MONEDA, RoundingMode.HALF_UP);
-            BigDecimal subtotalDespues = subtotalAntes.add(montoImpuesto)
-                    .setScale(ESCALA_MONEDA, RoundingMode.HALF_UP);
+                    .divide(CIEN);
+            BigDecimal subtotalDespues = subtotalAntes.add(montoImpuesto);
 
             detalles.add(new DetalleImpuesto(impuestoId, impuesto.getNombre(),
                     subtotalAntes, porcentaje, montoImpuesto, subtotalDespues));
             subtotal = subtotalDespues;
         }
 
-        return new ResultadoCalculoImpuestos(normalizarMoneda(precioBase), subtotal, detalles);
+        return new ResultadoCalculoImpuestos(valorSeguro(precioBase), subtotal, detalles);
     }
 
-    private static BigDecimal normalizarMoneda(BigDecimal valor) {
-        BigDecimal seguro = valor == null ? BigDecimal.ZERO : valor;
-        return seguro.setScale(ESCALA_MONEDA, RoundingMode.HALF_UP);
+    private static BigDecimal valorSeguro(BigDecimal valor) {
+        return valor == null ? BigDecimal.ZERO : valor;
     }
 }

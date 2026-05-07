@@ -1,6 +1,7 @@
 package Metodos;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
@@ -20,10 +21,7 @@ public final class PrecioFormatter {
 
     public static String formatearPrecio(BigDecimal precio) {
         BigDecimal precioSeguro = precio == null ? BigDecimal.ZERO : precio;
-        String formatoPrecio = Configuracion.formatoPrecio;
-        if (formatoPrecio == null || formatoPrecio.trim().isEmpty()) {
-            formatoPrecio = FORMATO_CO;
-        }
+        String formatoPrecio = obtenerFormatoPrecio();
 
         if (FORMATO_MX.equalsIgnoreCase(formatoPrecio)) {
             DecimalFormatSymbols simbolos = DecimalFormatSymbols.getInstance(Locale.US);
@@ -37,5 +35,21 @@ public final class PrecioFormatter {
         NumberFormat formatoMoneda = NumberFormat.getCurrencyInstance(colombia);
         formatoMoneda.setMaximumFractionDigits(0);
         return formatoMoneda.format(precioSeguro);
+    }
+
+    public static String formatearPrecioDesglose(BigDecimal precio) {
+        BigDecimal precioSeguro = precio == null ? BigDecimal.ZERO : precio;
+        DecimalFormatSymbols simbolos = DecimalFormatSymbols.getInstance(Locale.US);
+        DecimalFormat decimalFormat = new DecimalFormat("#,##0.00", simbolos);
+        decimalFormat.setRoundingMode(RoundingMode.HALF_UP);
+        return "$" + decimalFormat.format(precioSeguro);
+    }
+
+    private static String obtenerFormatoPrecio() {
+        String formatoPrecio = Configuracion.formatoPrecio;
+        if (formatoPrecio == null || formatoPrecio.trim().isEmpty()) {
+            return FORMATO_CO;
+        }
+        return formatoPrecio;
     }
 }
