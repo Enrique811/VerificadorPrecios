@@ -38,7 +38,7 @@ public class SQLArticulo {
             + " A.DESCRIPCION AS DESCRIPCION,"
             + " A.TVENTA AS FORMATO,"
             + " A.TVENTA AS PRESENTACION,"
-            + " A.PVENTA AS PRECIO_IVA,"
+            + " A.PFINAL AS PRECIO_IVA,"
             + " B.CANTIDAD_ACTUAL AS STOCK"
             + " FROM PRODUCTOS A"
             + " LEFT JOIN INVENTARIO_BALANCES B ON A.ID = B.PRODUCTO_ID";
