@@ -6,6 +6,7 @@ import Metodos.LicenseJsonValidator;
 import Metodos.LicenseValidationResult;
 import Metodos.PrinterUtils;
 import Metodos.ReporteManager;
+import java.awt.Desktop;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -19,10 +20,17 @@ import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.io.File;
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -55,9 +63,11 @@ public class ConfiguracionWindow extends JDialog {
     private static final Color COLOR_VERDE = new Color(22, 163, 74);
     private static final Color COLOR_GRIS = new Color(229, 231, 235);
     private static final Color COLOR_TEXTO_SECUNDARIO = new Color(107, 114, 128);
+    private static final Color COLOR_ERROR = new Color(220, 38, 38);
     private static final Dimension DIALOG_SIZE = new Dimension(820, 540);
     private static final Dimension MAX_DIALOG_SIZE = new Dimension(900, 560);
     private static final String TEXTO_FECHA_NO_DISPONIBLE = "-";
+    private static final String TEXTO_SELECCIONAR_OPCION = "Seleccionar opción";
 
     private JComboBox<ItemAmbiente> comboAmbiente;
     private JComboBox<ItemFormatoPrecio> comboFormatoPrecio;
@@ -68,6 +78,7 @@ public class ConfiguracionWindow extends JDialog {
     private JLabel etiquetaArchivoLicencia;
     private JComboBox<String> comboImpresora;
     private JComboBox<String> comboReporte;
+    private String uuidEquipoLocal;
 
     private final VentanaInicio ownerFrame;
 
@@ -119,18 +130,28 @@ public class ConfiguracionWindow extends JDialog {
         JLabel titulo = new JLabel("Configuraci\u00f3n");
         titulo.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 24));
         titulo.setForeground(COLOR_TITULO);
+        uuidEquipoLocal = obtenerUuidEquipoLocal();
 
-        JLabel subtitulo = new JLabel("<html>Administra ambiente, licencia, impresora y reporte.<br>"
-                + "Archivo: " + ConfigManager.getConfigPath() + "</html>");
-        subtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        subtitulo.setForeground(COLOR_TEXTO);
+        JLabel etiquetaUuidEquipo = new JLabel("UUID del equipo: " + valorVisibleUuid(uuidEquipoLocal));
+        etiquetaUuidEquipo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        etiquetaUuidEquipo.setForeground(COLOR_TEXTO);
+
+        JButton botonCopiarUuid = crearBoton("Copiar", new Color(239, 246, 255), COLOR_TITULO);
+        botonCopiarUuid.addActionListener(e -> copiarUuidEquipo());
+
+        JPanel filaUuid = new JPanel(new BorderLayout(8, 0));
+        filaUuid.setOpaque(false);
+        filaUuid.setAlignmentX(Component.LEFT_ALIGNMENT);
+        filaUuid.setMaximumSize(new Dimension(Integer.MAX_VALUE, botonCopiarUuid.getPreferredSize().height));
+        filaUuid.add(etiquetaUuidEquipo, BorderLayout.CENTER);
+        filaUuid.add(botonCopiarUuid, BorderLayout.EAST);
 
         JPanel textos = new JPanel();
         textos.setOpaque(false);
         textos.setLayout(new BoxLayout(textos, BoxLayout.Y_AXIS));
         textos.add(titulo);
         textos.add(javax.swing.Box.createVerticalStrut(4));
-        textos.add(subtitulo);
+        textos.add(filaUuid);
 
         header.add(textos, BorderLayout.CENTER);
         return header;
@@ -159,6 +180,7 @@ public class ConfiguracionWindow extends JDialog {
         tarjeta.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         comboAmbiente = new JComboBox<ItemAmbiente>(new ItemAmbiente[]{
+            new ItemAmbiente("", TEXTO_SELECCIONAR_OPCION),
             new ItemAmbiente("a", "Pruebas"),
             new ItemAmbiente("b", "Producci\u00f3n")
         });
@@ -167,6 +189,7 @@ public class ConfiguracionWindow extends JDialog {
         tarjeta.add(javax.swing.Box.createVerticalStrut(10));
 
         comboFormatoPrecio = new JComboBox<ItemFormatoPrecio>(new ItemFormatoPrecio[]{
+            new ItemFormatoPrecio("", TEXTO_SELECCIONAR_OPCION),
             new ItemFormatoPrecio("CO", "Sin decimales"),
             new ItemFormatoPrecio("MX", "2 decimales")
         });
@@ -268,16 +291,25 @@ public class ConfiguracionWindow extends JDialog {
     private JPanel crearPanelLicencia() {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
-        panel.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        panel.setLayout(new FlowLayout(FlowLayout.LEFT, 8, 0));
         panel.setAlignmentX(Component.LEFT_ALIGNMENT);
         JButton botonImportar = crearBoton("Importar .lic", new Color(239, 246, 255), COLOR_TITULO);
         botonImportar.addActionListener(e -> importarLicenciaDesdeArchivo());
+        JButton botonSolicitarLicencia = crearBoton("Solicitar licencia por correo",
+                new Color(239, 246, 255), COLOR_TITULO);
+        botonSolicitarLicencia.addActionListener(e -> solicitarLicenciaPorCorreo());
         panel.add(botonImportar);
+        panel.add(botonSolicitarLicencia);
         return panel;
     }
 
     private void configurarComboBox(JComboBox<?> comboBox) {
         comboBox.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        comboBox.setBackground(Color.WHITE);
+        comboBox.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedBorder(COLOR_BORDE, 18),
+                new EmptyBorder(8, 10, 8, 10)));
+        comboBox.addActionListener(e -> limpiarValidacionComboBox(comboBox));
         comboBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         comboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, comboBox.getPreferredSize().height));
     }
@@ -289,6 +321,7 @@ public class ConfiguracionWindow extends JDialog {
         comboBox.setBorder(BorderFactory.createCompoundBorder(
                 new RoundedBorder(COLOR_BORDE, 18),
                 new EmptyBorder(8, 10, 8, 10)));
+        comboBox.addActionListener(e -> limpiarValidacionComboBox(comboBox));
         comboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, comboBox.getPreferredSize().height));
         return comboBox;
     }
@@ -317,8 +350,8 @@ public class ConfiguracionWindow extends JDialog {
     private void cargarConfiguracion() {
         try {
             Properties properties = ConfigManager.loadProperties();
-            seleccionarAmbiente(properties.getProperty("ambiente", "a"));
-            seleccionarFormatoPrecio(properties.getProperty("formatoPrecio", "CO"));
+            seleccionarAmbiente(properties.getProperty("ambiente", ""));
+            seleccionarFormatoPrecio(properties.getProperty("formatoPrecio", ""));
             cargarLicenciaGuardada(properties.getProperty("clave", ""));
             actualizarFechasLicencia();
             cargarImpresoras(properties.getProperty("impresora", ""));
@@ -333,10 +366,11 @@ public class ConfiguracionWindow extends JDialog {
 
     private void cargarImpresoras(String impresoraSeleccionada) {
         comboImpresora.removeAllItems();
+        comboImpresora.addItem(TEXTO_SELECCIONAR_OPCION);
         List<String> impresoras = PrinterUtils.getInstalledPrinterNames();
         if (impresoras.isEmpty()) {
-            comboImpresora.addItem("Sin impresoras detectadas");
             comboImpresora.setEnabled(false);
+            comboImpresora.setSelectedIndex(0);
             return;
         }
 
@@ -361,10 +395,11 @@ public class ConfiguracionWindow extends JDialog {
 
     private void cargarReportes(String reporteSeleccionado) {
         comboReporte.removeAllItems();
+        comboReporte.addItem(TEXTO_SELECCIONAR_OPCION);
         List<String> reportes = ReporteManager.listarReportesDisponibles();
         if (reportes.isEmpty()) {
-            comboReporte.addItem("Sin reportes detectados");
             comboReporte.setEnabled(false);
+            comboReporte.setSelectedIndex(0);
             return;
         }
 
@@ -372,7 +407,12 @@ public class ConfiguracionWindow extends JDialog {
         for (String reporte : reportes) {
             comboReporte.addItem(reporte);
         }
-        comboReporte.setSelectedItem(ReporteManager.resolverReporteConfigurado(reporteSeleccionado));
+        String reporteResuelto = ReporteManager.resolverReporteConfigurado(reporteSeleccionado);
+        if (reporteResuelto != null && !reporteResuelto.trim().isEmpty()) {
+            comboReporte.setSelectedItem(reporteResuelto);
+        } else {
+            comboReporte.setSelectedIndex(0);
+        }
     }
 
     private void seleccionarAmbiente(String ambiente) {
@@ -399,6 +439,26 @@ public class ConfiguracionWindow extends JDialog {
 
     private void guardarConfiguracion() {
         String clave = normalizarLicenciaJson(campoClave.getText());
+        limpiarValidacionComboBox(comboAmbiente);
+        limpiarValidacionComboBox(comboFormatoPrecio);
+        limpiarValidacionComboBox(comboImpresora);
+        limpiarValidacionComboBox(comboReporte);
+
+        if (!validarComboObligatorio(comboAmbiente, "Debe seleccionar un Ambiente.")) {
+            return;
+        }
+
+        if (!validarComboObligatorio(comboFormatoPrecio, "Debe seleccionar un Formato de Precio.")) {
+            return;
+        }
+
+        if (!validarComboObligatorio(comboImpresora, "Debe seleccionar una Impresora.")) {
+            return;
+        }
+
+        if (!validarComboObligatorio(comboReporte, "Debe seleccionar un Reporte.")) {
+            return;
+        }
 
         if (clave.isEmpty()) {
             campoClave.requestFocusInWindow();
@@ -428,10 +488,10 @@ public class ConfiguracionWindow extends JDialog {
                     : "";
 
             ConfigManager.saveConfiguration(
-                    ambienteSeleccionado != null ? ambienteSeleccionado.codigo : "a",
+                    ambienteSeleccionado != null ? ambienteSeleccionado.codigo : "",
                     clave,
                     impresora,
-                    formatoSeleccionado != null ? formatoSeleccionado.codigo : "CO",
+                    formatoSeleccionado != null ? formatoSeleccionado.codigo : "",
                     reporte);
 
             Configuracion.leerArchivoDePropiedades();
@@ -606,6 +666,214 @@ public class ConfiguracionWindow extends JDialog {
         }
     }
 
+    private boolean validarComboObligatorio(JComboBox<?> comboBox, String mensaje) {
+        if (!comboBox.isEnabled()) {
+            resaltarComboBoxInvalido(comboBox);
+            JOptionPane.showMessageDialog(this, mensaje, "Configuración", JOptionPane.WARNING_MESSAGE);
+            comboBox.requestFocusInWindow();
+            return false;
+        }
+
+        Object seleccionado = comboBox.getSelectedItem();
+        if (seleccionado == null) {
+            resaltarComboBoxInvalido(comboBox);
+            JOptionPane.showMessageDialog(this, mensaje, "Configuración", JOptionPane.WARNING_MESSAGE);
+            comboBox.requestFocusInWindow();
+            return false;
+        }
+
+        if (seleccionado instanceof ItemAmbiente) {
+            if (((ItemAmbiente) seleccionado).codigo.trim().isEmpty()) {
+                resaltarComboBoxInvalido(comboBox);
+                JOptionPane.showMessageDialog(this, mensaje, "Configuración", JOptionPane.WARNING_MESSAGE);
+                comboBox.requestFocusInWindow();
+                return false;
+            }
+            return true;
+        }
+
+        if (seleccionado instanceof ItemFormatoPrecio) {
+            if (((ItemFormatoPrecio) seleccionado).codigo.trim().isEmpty()) {
+                resaltarComboBoxInvalido(comboBox);
+                JOptionPane.showMessageDialog(this, mensaje, "Configuración", JOptionPane.WARNING_MESSAGE);
+                comboBox.requestFocusInWindow();
+                return false;
+            }
+            return true;
+        }
+
+        String valor = seleccionado.toString().trim();
+        if (valor.isEmpty() || TEXTO_SELECCIONAR_OPCION.equals(valor)) {
+            resaltarComboBoxInvalido(comboBox);
+            JOptionPane.showMessageDialog(this, mensaje, "Configuración", JOptionPane.WARNING_MESSAGE);
+            comboBox.requestFocusInWindow();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void resaltarComboBoxInvalido(JComboBox<?> comboBox) {
+        comboBox.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedBorder(COLOR_ERROR, 18),
+                new EmptyBorder(8, 10, 8, 10)));
+    }
+
+    private void limpiarValidacionComboBox(JComboBox<?> comboBox) {
+        comboBox.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedBorder(COLOR_BORDE, 18),
+                new EmptyBorder(8, 10, 8, 10)));
+    }
+
+    private void copiarUuidEquipo() {
+        if (uuidEquipoLocal == null || uuidEquipoLocal.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo obtener el UUID del equipo.",
+                    "UUID",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        StringSelection seleccion = new StringSelection(uuidEquipoLocal);
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(seleccion, null);
+        JOptionPane.showMessageDialog(this,
+                "UUID copiado al portapapeles.",
+                "UUID",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void solicitarLicenciaPorCorreo() {
+        if (uuidEquipoLocal == null || uuidEquipoLocal.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo obtener el UUID del equipo.",
+                    "UUID",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String asunto = "Solicitud de activaci\u00f3n de sistema";
+        String cuerpo = "Hola..\r\n\r\n"
+                + "Solicito la activaci\u00f3n/licenciamiento del sistema para el siguiente equipo:\r\n\r\n"
+                + "UUID:\r\n"
+                + uuidEquipoLocal
+                + "\r\n\r\n"
+                + "Gracias.";
+
+        String[] opciones = {"Cliente predeterminado", "Gmail", "Outlook", "Cancelar"};
+        int opcion = JOptionPane.showOptionDialog(
+                this,
+                "Selecciona c\u00f3mo deseas crear el correo.",
+                "Solicitar licencia",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                opciones,
+                opciones[0]);
+
+        try {
+            if (opcion == 0) {
+                abrirClienteCorreoPredeterminado(asunto, cuerpo);
+            } else if (opcion == 1) {
+                abrirEnNavegador("https://mail.google.com/mail/?view=cm&fs=1&su="
+                        + codificarParaMailto(asunto)
+                        + "&body="
+                        + codificarParaMailto(cuerpo));
+            } else if (opcion == 2) {
+                abrirEnNavegador("https://outlook.office.com/mail/deeplink/compose?subject="
+                        + codificarParaMailto(asunto)
+                        + "&body="
+                        + codificarParaMailto(cuerpo));
+            }
+        } catch (IOException | IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "No fue posible abrir la opci\u00f3n de correo seleccionada.",
+                    "Correo",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private String obtenerUuidEquipoLocal() {
+        String uuid = ejecutarComandoUuid(new String[]{"wmic", "csproduct", "get", "uuid"});
+        if (esUuidValido(uuid)) {
+            return uuid;
+        }
+
+        uuid = ejecutarComandoUuid(new String[]{
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "(Get-CimInstance Win32_ComputerSystemProduct).UUID"
+        });
+        if (esUuidValido(uuid)) {
+            return uuid;
+        }
+
+        return "";
+    }
+
+    private String ejecutarComandoUuid(String[] command) {
+        Process process = null;
+        try {
+            process = new ProcessBuilder(command).redirectErrorStream(true).start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
+            try {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String valor = normalizarUuid(line);
+                    if (esUuidValido(valor)) {
+                        return valor;
+                    }
+                }
+            } finally {
+                reader.close();
+            }
+        } catch (IOException ex) {
+            return "";
+        } finally {
+            if (process != null) {
+                process.destroy();
+            }
+        }
+        return "";
+    }
+
+    private String normalizarUuid(String valor) {
+        if (valor == null) {
+            return "";
+        }
+        return valor.trim().toUpperCase();
+    }
+
+    private boolean esUuidValido(String valor) {
+        return valor != null && valor.matches("(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+    }
+
+    private String valorVisibleUuid(String uuid) {
+        return uuid == null || uuid.trim().isEmpty() ? TEXTO_FECHA_NO_DISPONIBLE : uuid;
+    }
+
+    private void abrirClienteCorreoPredeterminado(String asunto, String cuerpo) throws IOException {
+        if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.MAIL)) {
+            throw new IOException("Cliente de correo no disponible");
+        }
+
+        String mailto = "mailto:?subject=" + codificarParaMailto(asunto)
+                + "&body=" + codificarParaMailto(cuerpo);
+        Desktop.getDesktop().mail(URI.create(mailto));
+    }
+
+    private void abrirEnNavegador(String url) throws IOException {
+        if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+            throw new IOException("Navegador no disponible");
+        }
+
+        Desktop.getDesktop().browse(URI.create(url));
+    }
+
+    private String codificarParaMailto(String valor) {
+        return URLEncoder.encode(valor, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
     private static final class ItemAmbiente {
 
         private final String codigo;
@@ -618,6 +886,9 @@ public class ConfiguracionWindow extends JDialog {
 
         @Override
         public String toString() {
+            if (codigo == null || codigo.trim().isEmpty()) {
+                return descripcion;
+            }
             return codigo + " - " + descripcion;
         }
     }
@@ -634,6 +905,9 @@ public class ConfiguracionWindow extends JDialog {
 
         @Override
         public String toString() {
+            if (codigo == null || codigo.trim().isEmpty()) {
+                return descripcion;
+            }
             return codigo + " - " + descripcion;
         }
     }
