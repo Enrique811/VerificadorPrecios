@@ -23,13 +23,15 @@ public final class LicenseJsonValidator {
 
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
     private static final String DATE_ONLY_FORMAT = "yyyy-MM-dd";
-    private static final String EMBEDDED_PUBLIC_KEY_BASE64
+    private static final String EMBEDDED_PUBLIC_KEY_BASE64 //este es del cliente
             = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzl0ie2IjH6sOfJXZquujuncM"
             + "aXfcLbzUDyWNN4dwvZO4PwTsEUl+PYEuT9Iv2BWNHXCZviyfDQjWIZcy4rqfBecFUOSF"
             + "iDfUhaCLk61y/Gx3uqfCGUHnxrCGYNBu5uWwGXLEt1nyOZAfBv4Z1JCCZ03YebZeZkwL"
             + "kYbL517dpKgbxuMHPtdl8p9GmXT8ljUZhao5WojmafxHQBz3jz+59LAUKUhdZb3hwiC+"
             + "526lU0JiBm48yB28dtL6dh3ixm9TOetN0Cwm+nDS0jMtqX+qvhYv/E+Ztz1n5Q++v9Zf"
             + "OTQMmlKI2TVZ1R+pL8kQOvuw/GsdZONcXscfMF7ENVRkAQIDAQAB";
+        private static final String EMBEDDED_PUBLIC_KEY_BASE64_ //este el mio
+            = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlN7pBkLh3rZiY8yPZ/xtcHAaD5eS93SZOMzdTnFAsmxDZ6Y8VIOXopY44Wg6h/CUjVRCFx38ZpqJ8DYqYPi+AdOzEyRwHSjWsPcDJ+xr+1Zt9y3t3eFeSatHpx9C3eIy3AwXJuC56oX1EqBNpNltG+lFFZHjCr+h3lp5iazGbfgii8gtdVC2z5pWGI6/agsmDEngY5vGl2N29lRkusG7sJkBdPEd2ReNnIy7oRZtq9w6RinpQxrLeToN8TGe5B5A/TfRyfInRT0ZY7RNlVvXCVT6J7R/9UdMgHK+gIzsReohV3OMZG+fsjfw7Rx3RxZT3mps+lbcFwvBs6xQteRHWQIDAQAB";
     private static final Pattern JSON_FIELD_PATTERN = Pattern.compile("\"(uuid|inicio|fin|firma)\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"");
 
     private LicenseJsonValidator() {
