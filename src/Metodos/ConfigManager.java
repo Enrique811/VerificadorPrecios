@@ -116,6 +116,41 @@ public final class ConfigManager {
         return CONFIG_PATH;
     }
 
+    public static boolean isFirstConfiguration() {
+        File configFile = new File(CONFIG_PATH);
+        if (!configFile.exists()) {
+            return true;
+        }
+
+        try {
+            Properties current = loadProperties();
+            String clave = current.getProperty("clave", "");
+            String impresora = current.getProperty("impresora", "");
+            String reporte = current.getProperty("reporte", "");
+
+            if (isBlank(clave)) {
+                return true;
+            }
+
+            return isBlank(impresora) && isBlank(reporte);
+        } catch (IOException ex) {
+            return true;
+        }
+    }
+
+    public static String getStoredLicenseKey() {
+        try {
+            Properties current = loadProperties();
+            return current.getProperty("clave", "");
+        } catch (IOException ex) {
+            return "";
+        }
+    }
+
+    public static boolean hasExistingLicense() {
+        return !isBlank(getStoredLicenseKey());
+    }
+
     private static void ensureConfigFileExists() throws IOException {
         ensureConfigDirectoryExists();
         if (!existsFile()) {
@@ -240,5 +275,9 @@ public final class ConfigManager {
         } catch (IllegalArgumentException ex) {
             return value;
         }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

@@ -1,5 +1,6 @@
 package Ventanas;
 
+import Metodos.ActivationEmailService;
 import Metodos.ConfigManager;
 import Metodos.Configuracion;
 import Metodos.LicenseJsonValidator;
@@ -439,6 +440,9 @@ public class ConfiguracionWindow extends JDialog {
 
     private void guardarConfiguracion() {
         String clave = normalizarLicenciaJson(campoClave.getText());
+        String licenciaGuardada = normalizarLicenciaJson(ConfigManager.getStoredLicenseKey());
+        ActivationEmailService.ActivationEvent activationEvent
+                = resolverEventoActivacion(licenciaGuardada, clave);
         limpiarValidacionComboBox(comboAmbiente);
         limpiarValidacionComboBox(comboFormatoPrecio);
         limpiarValidacionComboBox(comboImpresora);
@@ -487,6 +491,11 @@ public class ConfiguracionWindow extends JDialog {
                     ? comboReporte.getSelectedItem().toString()
                     : "";
 
+            ActivationEmailService.enviarCorreoActivacion(
+                    validationResult,
+                    obtenerArchivoLicenciaActual(),
+                    activationEvent);
+
             ConfigManager.saveConfiguration(
                     ambienteSeleccionado != null ? ambienteSeleccionado.codigo : "",
                     clave,
@@ -504,6 +513,16 @@ public class ConfiguracionWindow extends JDialog {
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this,
                     "No se pudo guardar la configuraci\u00f3n.\n" + ex.getMessage(),
+                    "Configuraci\u00f3n",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (ActivationEmailService.ActivationEmailException ex) {
+            JOptionPane.showMessageDialog(this,
+                    ex.getMessage(),
+                    "Correo de activacion",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Ocurrio un error general durante la activacion.\n" + ex.getMessage(),
                     "Configuraci\u00f3n",
                     JOptionPane.ERROR_MESSAGE);
         }
@@ -575,6 +594,42 @@ public class ConfiguracionWindow extends JDialog {
         etiquetaUuidLicencia.setText("UUID licencia: " + uuid);
         etiquetaFechaInicio.setText("Vigencia desde: " + formato.format(fechas[0]));
         etiquetaFechaFin.setText("Vigencia hasta: " + formato.format(fechas[1]));
+    }
+
+    private String obtenerArchivoLicenciaActual() {
+        if (etiquetaArchivoLicencia == null) {
+            return TEXTO_FECHA_NO_DISPONIBLE;
+        }
+
+        String texto = etiquetaArchivoLicencia.getText();
+        String prefijo = "Archivo importado: ";
+        if (texto == null || texto.trim().isEmpty()) {
+            return TEXTO_FECHA_NO_DISPONIBLE;
+        }
+
+        if (texto.startsWith(prefijo)) {
+            return texto.substring(prefijo.length()).trim();
+        }
+
+        return texto.trim();
+    }
+
+    private ActivationEmailService.ActivationEvent resolverEventoActivacion(String licenciaAnterior,
+            String licenciaNueva) {
+        boolean primeraConfiguracion = ConfigManager.isFirstConfiguration();
+        boolean habiaLicencia = licenciaAnterior != null && !licenciaAnterior.trim().isEmpty();
+        boolean licenciaCambio = !normalizarLicenciaJson(licenciaAnterior)
+                .equals(normalizarLicenciaJson(licenciaNueva));
+
+        if (primeraConfiguracion) {
+            return ActivationEmailService.ActivationEvent.ACTIVACION_INICIAL;
+        }
+
+        if (habiaLicencia && licenciaCambio) {
+            return ActivationEmailService.ActivationEvent.REACTIVACION;
+        }
+
+        return ActivationEmailService.ActivationEvent.SIN_ENVIO;
     }
 
     private Date[] obtenerFechasLicencia(String licenciaJson) {

@@ -23,6 +23,8 @@ public final class LicenseJsonValidator {
 
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
     private static final String DATE_ONLY_FORMAT = "yyyy-MM-dd";
+    public static final String ACTIVADO_POR_DISTRIBUIDOR = "DISTRIBUIDOR COLOMBIA";
+    public static final String ACTIVADO_POR_DESARROLLADOR = "DESARROLLADOR";
     private static final String EMBEDDED_PUBLIC_KEY_BASE64 //este es del cliente
             = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzl0ie2IjH6sOfJXZquujuncM"
             + "aXfcLbzUDyWNN4dwvZO4PwTsEUl+PYEuT9Iv2BWNHXCZviyfDQjWIZcy4rqfBecFUOSF"
@@ -30,7 +32,7 @@ public final class LicenseJsonValidator {
             + "kYbL517dpKgbxuMHPtdl8p9GmXT8ljUZhao5WojmafxHQBz3jz+59LAUKUhdZb3hwiC+"
             + "526lU0JiBm48yB28dtL6dh3ixm9TOetN0Cwm+nDS0jMtqX+qvhYv/E+Ztz1n5Q++v9Zf"
             + "OTQMmlKI2TVZ1R+pL8kQOvuw/GsdZONcXscfMF7ENVRkAQIDAQAB";
-        private static final String EMBEDDED_PUBLIC_KEY_BASE64_ //este el mio
+    private static final String EMBEDDED_PUBLIC_KEY_BASE64_DEV //este el mio
             = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlN7pBkLh3rZiY8yPZ/xtcHAaD5eS93SZOMzdTnFAsmxDZ6Y8VIOXopY44Wg6h/CUjVRCFx38ZpqJ8DYqYPi+AdOzEyRwHSjWsPcDJ+xr+1Zt9y3t3eFeSatHpx9C3eIy3AwXJuC56oX1EqBNpNltG+lFFZHjCr+h3lp5iazGbfgii8gtdVC2z5pWGI6/agsmDEngY5vGl2N29lRkusG7sJkBdPEd2ReNnIy7oRZtq9w6RinpQxrLeToN8TGe5B5A/TfRyfInRT0ZY7RNlVvXCVT6J7R/9UdMgHK+gIzsReohV3OMZG+fsjfw7Rx3RxZT3mps+lbcFwvBs6xQteRHWQIDAQAB";
     private static final Pattern JSON_FIELD_PATTERN = Pattern.compile("\"(uuid|inicio|fin|firma)\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"");
 
@@ -40,14 +42,14 @@ public final class LicenseJsonValidator {
     public static LicenseValidationResult validate(String licenseInput) {
         if (licenseInput == null || licenseInput.trim().isEmpty()) {
             return invalidResult(null, null, null, null, null, null, false, false, false, false,
-                    false, false, "No se configuro la licencia.");
+                    false, false, null, "No se configuro la licencia.");
         }
 
         try {
             LicenseSource source = resolveLicenseSource(licenseInput);
             LicensePayload payload = parseLicense(source.content);
-            PublicKey publicKey = readPublicKey();
-            boolean firmaValida = verifySignature(payload, publicKey);
+            ActivationType activationType = detectActivationType(payload);
+            boolean firmaValida = activationType != null;
             String uuidLocal = obtenerUuidLocalWindows();
             boolean uuidValido = uuidLocal != null
                     && !uuidLocal.isEmpty()
@@ -79,14 +81,29 @@ public final class LicenseJsonValidator {
                     vigencia.noIniciada,
                     true,
                     true,
+                    activationType == null ? null : activationType.activadoPor,
                     mensajeError);
         } catch (LicenseValidationException ex) {
             return invalidResult(describeLicenseInput(licenseInput), null, null, null, null, null, false,
-                    false, false, false, true, false, ex.getMessage());
+                    false, false, false, true, false, null, ex.getMessage());
         } catch (Exception ex) {
             return invalidResult(describeLicenseInput(licenseInput), null, null, null, null, null, false,
-                    false, false, false, true, false,
+                    false, false, false, true, false, null,
                     "No fue posible validar la licencia: " + ex.getMessage());
+        }
+    }
+
+    public static String detectActivationType(String licenseInput) {
+        LicensePayload payload = parsePayloadQuietly(licenseInput);
+        if (payload == null) {
+            return null;
+        }
+
+        try {
+            ActivationType activationType = detectActivationType(payload);
+            return activationType == null ? null : activationType.activadoPor;
+        } catch (Exception ex) {
+            return null;
         }
     }
 
@@ -120,10 +137,10 @@ public final class LicenseJsonValidator {
     private static LicenseValidationResult invalidResult(String licensePath, String uuidLicencia,
             String uuidLocal, Date fechaInicio, Date fechaFin, Date fechaServidor, boolean firmaValida,
             boolean uuidValido, boolean vigente, boolean noIniciada, boolean archivoLeido,
-            boolean jsonValido, String mensajeError) {
+            boolean jsonValido, String activadoPor, String mensajeError) {
         return new LicenseValidationResult(licensePath, uuidLicencia, uuidLocal, fechaInicio, fechaFin,
                 fechaServidor, firmaValida, uuidValido, vigente, noIniciada, archivoLeido,
-                jsonValido, mensajeError);
+                jsonValido, activadoPor, mensajeError);
     }
 
     private static String readFile(File file) throws IOException {
@@ -186,8 +203,8 @@ public final class LicenseJsonValidator {
                 firma.trim());
     }
 
-    private static PublicKey readPublicKey() throws Exception {
-        byte[] keyBytes = Base64.getDecoder().decode(EMBEDDED_PUBLIC_KEY_BASE64);
+    private static PublicKey readPublicKey(String keyBase64) throws Exception {
+        byte[] keyBytes = Base64.getDecoder().decode(keyBase64);
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         return KeyFactory.getInstance("RSA").generatePublic(spec);
     }
@@ -197,6 +214,15 @@ public final class LicenseJsonValidator {
         signature.initVerify(publicKey);
         signature.update(buildSignedPayload(payload).getBytes(StandardCharsets.UTF_8));
         return signature.verify(Base64.getDecoder().decode(payload.firma));
+    }
+
+    private static ActivationType detectActivationType(LicensePayload payload) throws Exception {
+        for (ActivationType candidate : ActivationType.values()) {
+            if (verifySignature(payload, readPublicKey(candidate.publicKeyBase64))) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private static String buildSignedPayload(LicensePayload payload) {
@@ -412,6 +438,19 @@ public final class LicenseJsonValidator {
         private VigenciaEstado(boolean vigente, boolean noIniciada) {
             this.vigente = vigente;
             this.noIniciada = noIniciada;
+        }
+    }
+
+    private enum ActivationType {
+        DISTRIBUIDOR_COLOMBIA(EMBEDDED_PUBLIC_KEY_BASE64, ACTIVADO_POR_DISTRIBUIDOR),
+        DESARROLLADOR(EMBEDDED_PUBLIC_KEY_BASE64_DEV, ACTIVADO_POR_DESARROLLADOR);
+
+        private final String publicKeyBase64;
+        private final String activadoPor;
+
+        private ActivationType(String publicKeyBase64, String activadoPor) {
+            this.publicKeyBase64 = publicKeyBase64;
+            this.activadoPor = activadoPor;
         }
     }
 

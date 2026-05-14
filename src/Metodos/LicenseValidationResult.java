@@ -19,12 +19,13 @@ public final class LicenseValidationResult {
     private final boolean noIniciada;
     private final boolean archivoLeido;
     private final boolean jsonValido;
+    private final String activadoPor;
     private final String mensajeError;
 
     public LicenseValidationResult(String licensePath, String uuidLicencia, String uuidLocal,
             Date fechaInicio, Date fechaFin, Date fechaServidor, boolean firmaValida,
             boolean uuidValido, boolean vigente, boolean noIniciada, boolean archivoLeido,
-            boolean jsonValido, String mensajeError) {
+            boolean jsonValido, String activadoPor, String mensajeError) {
         this.licensePath = licensePath;
         this.uuidLicencia = uuidLicencia;
         this.uuidLocal = uuidLocal;
@@ -37,6 +38,7 @@ public final class LicenseValidationResult {
         this.noIniciada = noIniciada;
         this.archivoLeido = archivoLeido;
         this.jsonValido = jsonValido;
+        this.activadoPor = activadoPor;
         this.mensajeError = mensajeError;
     }
 
@@ -86,6 +88,10 @@ public final class LicenseValidationResult {
 
     public boolean isJsonValido() {
         return jsonValido;
+    }
+
+    public String getActivadoPor() {
+        return activadoPor;
     }
 
     public String getMensajeError() {
