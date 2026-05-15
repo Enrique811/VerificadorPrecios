@@ -263,22 +263,37 @@ public final class LicenseJsonValidator {
     }
 
     private static String obtenerUuidLocalWindows() throws LicenseValidationException {
-        String uuid = ejecutarComandoUuid(new String[]{"wmic", "csproduct", "get", "uuid"});
-        if (isValidUuid(uuid)) {
-            return uuid;
-        }
-
-        uuid = ejecutarComandoUuid(new String[]{
-            "powershell",
-            "-NoProfile",
-            "-Command",
-            "(Get-CimInstance Win32_ComputerSystemProduct).UUID"
-        });
-        if (isValidUuid(uuid)) {
-            return uuid;
+        for (String[] command : buildUuidCommands()) {
+            String uuid = ejecutarComandoUuid(command);
+            if (isValidUuid(uuid)) {
+                return uuid;
+            }
         }
 
         throw new LicenseValidationException("No fue posible obtener un UUID local valido en Windows.");
+    }
+
+    private static String[][] buildUuidCommands() {
+        String windowsDir = resolveWindowsDirectory();
+        String system32PowerShell = windowsDir + "\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+        String sysnativePowerShell = windowsDir + "\\Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe";
+        String system32Wmic = windowsDir + "\\System32\\wbem\\WMIC.exe";
+        String sysnativeWmic = windowsDir + "\\Sysnative\\wbem\\WMIC.exe";
+
+        return new String[][]{
+            new String[]{system32PowerShell, "-NoProfile", "-Command", "(Get-CimInstance Win32_ComputerSystemProduct).UUID"},
+            new String[]{sysnativePowerShell, "-NoProfile", "-Command", "(Get-CimInstance Win32_ComputerSystemProduct).UUID"},
+            new String[]{system32Wmic, "csproduct", "get", "uuid"},
+            new String[]{sysnativeWmic, "csproduct", "get", "uuid"}
+        };
+    }
+
+    private static String resolveWindowsDirectory() {
+        String windowsDir = System.getenv("WINDIR");
+        if (windowsDir == null || windowsDir.trim().isEmpty()) {
+            return "C:\\Windows";
+        }
+        return windowsDir.trim();
     }
 
     private static String ejecutarComandoUuid(String[] command) {
