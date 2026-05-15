@@ -491,10 +491,14 @@ public class ConfiguracionWindow extends JDialog {
                     ? comboReporte.getSelectedItem().toString()
                     : "";
 
-            ActivationEmailService.enviarCorreoActivacion(
-                    validationResult,
-                    obtenerArchivoLicenciaActual(),
-                    activationEvent);
+            try {
+                ActivationEmailService.enviarCorreoActivacion(
+                        validationResult,
+                        obtenerArchivoLicenciaActual(),
+                        activationEvent);
+            } catch (ActivationEmailService.ActivationEmailException ex) {
+                // El correo interno es informativo; si falla, la configuración debe continuar.
+            }
 
             ConfigManager.saveConfiguration(
                     ambienteSeleccionado != null ? ambienteSeleccionado.codigo : "",
@@ -514,11 +518,6 @@ public class ConfiguracionWindow extends JDialog {
             JOptionPane.showMessageDialog(this,
                     "No se pudo guardar la configuraci\u00f3n.\n" + ex.getMessage(),
                     "Configuraci\u00f3n",
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (ActivationEmailService.ActivationEmailException ex) {
-            JOptionPane.showMessageDialog(this,
-                    ex.getMessage(),
-                    "Correo de activacion",
                     JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
@@ -806,6 +805,16 @@ public class ConfiguracionWindow extends JDialog {
             return;
         }
 
+        String correoSolicitudLicencia = ConfigManager.getLicenseRequestEmail();
+        if (correoSolicitudLicencia.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No se encontro el correo de licenciamiento en contacto.properties.\n"
+                    + "Ruta esperada: " + ConfigManager.getContactConfigPath(),
+                    "Correo",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         String asunto = "Solicitud de activaci\u00f3n de sistema";
         String cuerpo = "Hola..\r\n\r\n"
                 + "Solicito la activaci\u00f3n/licenciamiento del sistema para el siguiente equipo:\r\n\r\n"
@@ -829,12 +838,16 @@ public class ConfiguracionWindow extends JDialog {
             if (opcion == 0) {
                 abrirClienteCorreoPredeterminado(asunto, cuerpo);
             } else if (opcion == 1) {
-                abrirEnNavegador("https://mail.google.com/mail/?view=cm&fs=1&su="
+                abrirEnNavegador("https://mail.google.com/mail/?view=cm&fs=1&to="
+                        + codificarParaMailto(correoSolicitudLicencia)
+                        + "&su="
                         + codificarParaMailto(asunto)
                         + "&body="
                         + codificarParaMailto(cuerpo));
             } else if (opcion == 2) {
-                abrirEnNavegador("https://outlook.office.com/mail/deeplink/compose?subject="
+                abrirEnNavegador("https://outlook.office.com/mail/deeplink/compose?to="
+                        + codificarParaMailto(correoSolicitudLicencia)
+                        + "&subject="
                         + codificarParaMailto(asunto)
                         + "&body="
                         + codificarParaMailto(cuerpo));
@@ -912,7 +925,13 @@ public class ConfiguracionWindow extends JDialog {
             throw new IOException("Cliente de correo no disponible");
         }
 
-        String mailto = "mailto:?subject=" + codificarParaMailto(asunto)
+        String correoSolicitudLicencia = ConfigManager.getLicenseRequestEmail();
+        if (correoSolicitudLicencia.isEmpty()) {
+            throw new IOException("Correo de licenciamiento no configurado");
+        }
+
+        String mailto = "mailto:" + codificarParaMailto(correoSolicitudLicencia)
+                + "?subject=" + codificarParaMailto(asunto)
                 + "&body=" + codificarParaMailto(cuerpo);
         Desktop.getDesktop().mail(URI.create(mailto));
     }

@@ -14,6 +14,7 @@
     <target name="-post-jar">
         <mkdir dir="${basedir}/Ejecutable"/>
         <copy file="${dist.jar}" tofile="${basedir}/Ejecutable/VerificadorPrecios.jar" overwrite="true"/>
+        <copy file="${basedir}/contacto.properties" tofile="${basedir}/Ejecutable/contacto.properties" overwrite="true"/>
     </target>
     <!--
 

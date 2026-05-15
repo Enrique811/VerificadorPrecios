@@ -12,16 +12,8 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.Toolkit;
-import java.awt.datatransfer.StringSelection;
-import java.awt.Desktop;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -55,10 +47,7 @@ public class VentanaConfiguracion extends JFrame {
     private JTextField campoUsuario;
     private JPasswordField campoPassword;
     private JTextField campoRutaEmpresa;
-    private JTextField campoUuidEquipo;
     private JButton botonRutaEmpresa;
-    private JButton botonCopiarUuid;
-    private JButton botonEnviarUuidCorreo;
     private JButton botonGuardar;
 
     public VentanaConfiguracion() {
@@ -136,8 +125,6 @@ public class VentanaConfiguracion extends JFrame {
         JLabel etiquetaIp = crearEtiquetaCampo("IP");
         JLabel etiquetaUsuario = crearEtiquetaCampo("Usuario");
         JLabel etiquetaPassword = crearEtiquetaCampo("Password");
-        JLabel etiquetaUuid = crearEtiquetaCampo("UUID del equipo");
-
         panel.add(etiquetaRuta, gbc);
         gbc.gridy++;
         panel.add(etiquetaIp, gbc);
@@ -145,20 +132,11 @@ public class VentanaConfiguracion extends JFrame {
         panel.add(etiquetaUsuario, gbc);
         gbc.gridy++;
         panel.add(etiquetaPassword, gbc);
-        gbc.gridy++;
-        panel.add(etiquetaUuid, gbc);
 
         campoIpEmpresa = new JTextField(28);
         campoUsuario = new JTextField(28);
         campoPassword = new JPasswordField(28);
         campoRutaEmpresa = new JTextField(28);
-        campoUuidEquipo = new JTextField(28);
-        campoUuidEquipo.setEditable(false);
-        campoUuidEquipo.setBackground(Color.WHITE);
-        botonCopiarUuid = new JButton("Copiar");
-        botonCopiarUuid.addActionListener(e -> copiarUuidEquipo());
-        botonEnviarUuidCorreo = new JButton("Enviar por correo");
-        botonEnviarUuidCorreo.addActionListener(e -> enviarUuidPorCorreo());
         botonRutaEmpresa = new JButton("Seleccionar");
         botonRutaEmpresa.addActionListener(e -> seleccionarRutaEmpresa());
 
@@ -175,15 +153,6 @@ public class VentanaConfiguracion extends JFrame {
         panel.add(campoUsuario, gbc);
         gbc.gridy++;
         panel.add(campoPassword, gbc);
-        gbc.gridy++;
-        JPanel contenedorUuid = new JPanel(new BorderLayout(8, 0));
-        JPanel accionesUuid = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        accionesUuid.setOpaque(false);
-        accionesUuid.add(botonCopiarUuid);
-        accionesUuid.add(botonEnviarUuidCorreo);
-        contenedorUuid.add(campoUuidEquipo, BorderLayout.CENTER);
-        contenedorUuid.add(accionesUuid, BorderLayout.EAST);
-        panel.add(contenedorUuid, gbc);
 
         tarjeta.add(panel);
         return tarjeta;
@@ -210,7 +179,6 @@ public class VentanaConfiguracion extends JFrame {
         campoUsuario.setText(config.get("usuario"));
         campoPassword.setText(config.get("password"));
         campoRutaEmpresa.setText(config.get("rutaEmpresa"));
-        campoUuidEquipo.setText(obtenerUuidEquipoLocal());
     }
 
     private void guardarConfiguracion() {
@@ -308,153 +276,6 @@ public class VentanaConfiguracion extends JFrame {
         }
     }
 
-    private void copiarUuidEquipo() {
-        String uuid = campoUuidEquipo.getText().trim();
-        if (uuid.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "No se pudo obtener el UUID del equipo.",
-                    "UUID",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        StringSelection seleccion = new StringSelection(uuid);
-        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(seleccion, null);
-        JOptionPane.showMessageDialog(this,
-                "UUID copiado al portapapeles.",
-                "UUID",
-                JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void enviarUuidPorCorreo() {
-        String uuid = campoUuidEquipo.getText().trim();
-        if (uuid.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "No se pudo obtener el UUID del equipo.",
-                    "UUID",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        String asunto = "Solicitud de activaci\u00f3n de sistema";
-        String cuerpo = "Hola..\r\n\r\n"
-                + "Solicito la activaci\u00f3n/licenciamiento del sistema para el siguiente equipo:\r\n\r\n"
-                + "UUID:\r\n"
-                + uuid
-                + "\r\n\r\n"
-                + "Gracias.";
-
-        String[] opciones = {"Cliente predeterminado", "Gmail", "Outlook", "Cancelar"};
-        int opcion = JOptionPane.showOptionDialog(
-                this,
-                "Selecciona c\u00f3mo deseas crear el correo.",
-                "Enviar por correo",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                opciones,
-                opciones[0]);
-
-        try {
-            if (opcion == 0) {
-                abrirClienteCorreoPredeterminado(asunto, cuerpo);
-            } else if (opcion == 1) {
-                abrirEnNavegador("https://mail.google.com/mail/?view=cm&fs=1&su="
-                        + codificarParaMailto(asunto)
-                        + "&body="
-                        + codificarParaMailto(cuerpo));
-            } else if (opcion == 2) {
-                abrirEnNavegador("https://outlook.office.com/mail/deeplink/compose?subject="
-                        + codificarParaMailto(asunto)
-                        + "&body="
-                        + codificarParaMailto(cuerpo));
-            }
-        } catch (IOException | IllegalArgumentException ex) {
-            JOptionPane.showMessageDialog(this,
-                    "No fue posible abrir la opci\u00f3n de correo seleccionada.",
-                    "Correo",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private String obtenerUuidEquipoLocal() {
-        String uuid = ejecutarComandoUuid(new String[]{"wmic", "csproduct", "get", "uuid"});
-        if (esUuidValido(uuid)) {
-            return uuid;
-        }
-
-        uuid = ejecutarComandoUuid(new String[]{
-            "powershell",
-            "-NoProfile",
-            "-Command",
-            "(Get-CimInstance Win32_ComputerSystemProduct).UUID"
-        });
-        if (esUuidValido(uuid)) {
-            return uuid;
-        }
-
-        return "";
-    }
-
-    private String ejecutarComandoUuid(String[] command) {
-        Process process = null;
-        try {
-            process = new ProcessBuilder(command).redirectErrorStream(true).start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
-            try {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String valor = normalizarUuid(line);
-                    if (esUuidValido(valor)) {
-                        return valor;
-                    }
-                }
-            } finally {
-                reader.close();
-            }
-        } catch (IOException ex) {
-            return "";
-        } finally {
-            if (process != null) {
-                process.destroy();
-            }
-        }
-        return "";
-    }
-
-    private String normalizarUuid(String valor) {
-        if (valor == null) {
-            return "";
-        }
-        return valor.trim().toUpperCase();
-    }
-
-    private boolean esUuidValido(String valor) {
-        return valor != null && valor.matches("(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
-    }
-
-    private void abrirClienteCorreoPredeterminado(String asunto, String cuerpo) throws IOException {
-        if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.MAIL)) {
-            throw new IOException("Cliente de correo no disponible");
-        }
-
-        String mailto = "mailto:?subject=" + codificarParaMailto(asunto)
-                + "&body=" + codificarParaMailto(cuerpo);
-        Desktop.getDesktop().mail(URI.create(mailto));
-    }
-
-    private void abrirEnNavegador(String url) throws IOException {
-        if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-            throw new IOException("Navegador no disponible");
-        }
-
-        Desktop.getDesktop().browse(URI.create(url));
-    }
-
-    private String codificarParaMailto(String valor) {
-        return URLEncoder.encode(valor, StandardCharsets.UTF_8).replace("+", "%20");
-    }
-
     private JLabel crearEtiquetaCampo(String texto) {
         JLabel etiqueta = new JLabel(texto);
         etiqueta.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 14));
@@ -488,10 +309,7 @@ public class VentanaConfiguracion extends JFrame {
         campoUsuario.setEnabled(enabled);
         campoPassword.setEnabled(enabled);
         campoRutaEmpresa.setEnabled(enabled);
-        campoUuidEquipo.setEnabled(false);
         botonRutaEmpresa.setEnabled(enabled);
-        botonCopiarUuid.setEnabled(enabled);
-        botonEnviarUuidCorreo.setEnabled(enabled);
         if (botonGuardar != null) {
             botonGuardar.setEnabled(enabled);
         }

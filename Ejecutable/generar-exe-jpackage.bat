@@ -34,6 +34,11 @@ if not exist "reportes" (
     goto :error
 )
 
+if not exist "contacto.properties" (
+    echo ERROR: No se encontro el archivo contacto.properties
+    goto :error
+)
+
 REM ==========================================
 REM CONFIGURACION DEL JDK
 REM ==========================================
@@ -80,6 +85,7 @@ echo Creando estructura build...
 mkdir build
 
 copy /y "VerificadorPrecios.jar" "build\"
+copy /y "contacto.properties" "build\"
 
 xcopy "lib" "build\lib\" /e /i /y || goto :error
 xcopy "reportes" "build\reportes\" /e /i /y || goto :error

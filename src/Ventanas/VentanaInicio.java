@@ -68,7 +68,7 @@ public class VentanaInicio extends JFrame {
     private static final Dimension TAMANO_MINIMO_VENTANA = new Dimension(1180, 760);
     private static final String RUTA_LOGO = "/Img/logo_icon.png";
     private static final String VERSION = "v1.0.0";
-    private static final String FECHA_ACTUALIZACION = "2026-05-06";
+    private static final String FECHA_ACTUALIZACION = "2026-05-14";
 
     public static boolean controlAdministracion;
     public static boolean controlRutas;

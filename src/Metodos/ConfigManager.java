@@ -16,6 +16,8 @@ public final class ConfigManager {
 
     private static final String APPDATA_DIR = resolveAppDataDirectory();
     private static final String CONFIG_PATH = APPDATA_DIR + File.separator + "configuracion.properties";
+    private static final String CONTACT_FILE_NAME = "contacto.properties";
+    private static final String CONTACT_PATH = APPDATA_DIR + File.separator + CONTACT_FILE_NAME;
     private static final String DEFAULT_CONFIG_CONTENT = "# Base configuration\n"
             + "ambiente=YQ\\=\\=\n"
             + "clave=\n"
@@ -116,6 +118,29 @@ public final class ConfigManager {
         return CONFIG_PATH;
     }
 
+    public static String getContactConfigPath() {
+        File appDataContactFile = new File(CONTACT_PATH);
+        if (appDataContactFile.isFile()) {
+            return appDataContactFile.getAbsolutePath();
+        }
+
+        File packagedContactFile = resolvePackagedContactFile();
+        if (packagedContactFile.isFile()) {
+            return packagedContactFile.getAbsolutePath();
+        }
+
+        return CONTACT_PATH;
+    }
+
+    public static String getLicenseRequestEmail() {
+        try {
+            Properties contactProperties = loadContactProperties();
+            return contactProperties.getProperty("correo", "").trim();
+        } catch (IOException ex) {
+            return "";
+        }
+    }
+
     public static boolean isFirstConfiguration() {
         File configFile = new File(CONFIG_PATH);
         if (!configFile.exists()) {
@@ -151,6 +176,25 @@ public final class ConfigManager {
         return !isBlank(getStoredLicenseKey());
     }
 
+    public static Properties loadContactProperties() throws IOException {
+        Properties properties = new Properties();
+        File contactFile = resolveExistingContactFile();
+        if (contactFile == null) {
+            return properties;
+        }
+
+        InputStreamReader input = null;
+        try {
+            input = new InputStreamReader(new FileInputStream(contactFile), StandardCharsets.UTF_8);
+            properties.load(input);
+            return properties;
+        } finally {
+            if (input != null) {
+                input.close();
+            }
+        }
+    }
+
     private static void ensureConfigFileExists() throws IOException {
         ensureConfigDirectoryExists();
         if (!existsFile()) {
@@ -180,6 +224,24 @@ public final class ConfigManager {
 
     private static void ensureConfigDirectoryExists() throws IOException {
         Files.createDirectories(new File(APPDATA_DIR).toPath());
+    }
+
+    private static File resolveExistingContactFile() {
+        File appDataContactFile = new File(CONTACT_PATH);
+        if (appDataContactFile.isFile()) {
+            return appDataContactFile;
+        }
+
+        File packagedContactFile = resolvePackagedContactFile();
+        if (packagedContactFile.isFile()) {
+            return packagedContactFile;
+        }
+
+        return null;
+    }
+
+    private static File resolvePackagedContactFile() {
+        return new File(AppPaths.resolveAppBaseDirectory(), CONTACT_FILE_NAME);
     }
 
     private static String resolveAppDataDirectory() {
