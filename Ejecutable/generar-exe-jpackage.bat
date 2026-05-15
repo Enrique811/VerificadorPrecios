@@ -24,6 +24,18 @@ if not exist "VerificadorPrecios.jar" (
     goto :error
 )
 
+echo =========================
+echo GENERANDO EXE... CONVIERNTE DE .JAR A EXE
+echo =========================  ruta de programa Launcher4j      ruta de configuracion, AHI TIENE EL NOMBRE DEL ARCHIVO
+
+"C:\Program Files (x86)\Launch4j\launch4jc.exe" "C:\Users\gaming\Documents\NetBeansProjects\Proyectos\VerificadorPrecios\Ejecutable\configuraciondeJarAExe.xml"
+
+
+echo.
+echo =========================
+echo TERMINADO
+echo =========================
+
 if not exist "lib" (
     echo ERROR: No se encontro la carpeta lib
     goto :error
@@ -104,7 +116,7 @@ REM ==========================================
 echo Creando estructura build...
 mkdir build
 
-copy /y "VerificadorPrecios.jar" "build\"
+copy /y "VerificadorPrecios.exe" "build\"
 copy /y "contacto.properties" "build\"
 
 xcopy "lib" "build\lib\" /e /i /y || goto :error
@@ -139,7 +151,7 @@ echo Generando instalador...
  --input "build" ^
  --dest "." ^
  --name "VerificadorPrecios" ^
- --main-jar "VerificadorPrecios.jar" ^
+ --main-jar "VerificadorPrecios.exe" ^
  --main-class "App.Main" ^
  --type msi ^
  --runtime-image "runtime" ^

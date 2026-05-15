@@ -45,7 +45,7 @@ public final class ConfigManager {
         Properties decodedProperties = new Properties();
         for (String key : rawProperties.stringPropertyNames()) {
             String value = rawProperties.getProperty(key, "");
-            decodedProperties.setProperty(key, "clave".equals(key) ? value : decodeBase64(value));
+            decodedProperties.setProperty(key, decodeBase64(value));
         }
         return decodedProperties;
     }
@@ -280,7 +280,7 @@ public final class ConfigManager {
         Properties encodedProperties = new Properties();
         for (String key : decodedProperties.stringPropertyNames()) {
             String value = decodedProperties.getProperty(key, "");
-            encodedProperties.setProperty(key, "clave".equals(key) ? value : encodeBase64(value));
+            encodedProperties.setProperty(key, encodeBase64(value));
         }
 
         OutputStreamWriter output = null;

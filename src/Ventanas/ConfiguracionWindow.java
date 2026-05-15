@@ -183,8 +183,8 @@ public class ConfiguracionWindow extends JDialog {
 
         comboAmbiente = new JComboBox<ItemAmbiente>(new ItemAmbiente[]{
             new ItemAmbiente("", TEXTO_SELECCIONAR_OPCION),
-            new ItemAmbiente("a", "Pruebas"),
-            new ItemAmbiente("b", "Producci\u00f3n")
+            new ItemAmbiente("a", "Pruebas (Permite vista previa)"),
+            new ItemAmbiente("b", "Productivo (Impresion directa impresora)")
         });
         configurarComboBox(comboAmbiente);
         tarjeta.add(crearCampoFormulario("Ambiente", comboAmbiente));
