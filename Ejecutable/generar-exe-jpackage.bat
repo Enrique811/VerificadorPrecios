@@ -25,11 +25,20 @@ if not exist "VerificadorPrecios.jar" (
 )
 
 echo =========================
-echo GENERANDO EXE... CONVIERNTE DE .JAR A EXE
-echo =========================  ruta de programa Launcher4j      ruta de configuracion, AHI TIENE EL NOMBRE DEL ARCHIVO
+echo GENERANDO EXE CON LAUNCH4J...
+echo =========================
 
 "C:\Program Files (x86)\Launch4j\launch4jc.exe" "C:\Users\gaming\Documents\NetBeansProjects\Proyectos\VerificadorPrecios\Ejecutable\configuraciondeJarAExe.xml"
 
+if errorlevel 1 (
+    echo ERROR: Launch4j no pudo generar VerificadorPrecios.exe
+    goto :error
+)
+
+if not exist "VerificadorPrecios.exe" (
+    echo ERROR: No se genero VerificadorPrecios.exe
+    goto :error
+)
 
 echo.
 echo =========================
@@ -43,11 +52,6 @@ if not exist "lib" (
 
 if not exist "reportes" (
     echo ERROR: No se encontro la carpeta reportes
-    goto :error
-)
-
-if not exist "contacto.properties" (
-    echo ERROR: No se encontro el archivo contacto.properties
     goto :error
 )
 
@@ -145,7 +149,7 @@ echo.
 REM ==========================================
 REM GENERAR INSTALADOR EXE
 REM ==========================================
-echo Generando instalador...
+echo Generando instalador MSI...
 
 "%JDK_PATH%\jpackage.exe" ^
  --input "build" ^
