@@ -79,6 +79,24 @@ if exist "VerificadorPrecios-1.0.0.msi" (
 )
 
 REM ==========================================
+REM CONFIGURAR CONTACTO
+REM ==========================================
+echo.
+set "TIPO_PAQUETE="
+choice /c DC /m "Selecciona tipo de paquete: [D] Desarrollador / [C] Distribuidor Colombia"
+if errorlevel 2 set "TIPO_PAQUETE=COLOMBIA"
+if errorlevel 1 if not defined TIPO_PAQUETE set "TIPO_PAQUETE=DESARROLLADOR"
+
+if /i "%TIPO_PAQUETE%"=="DESARROLLADOR" (
+    > "contacto.properties" echo correo=config.soporte811@gmail.com
+    echo Se configuro contacto.properties para desarrollador.
+) else (
+    > "contacto.properties" echo correo=
+    echo Se configuro contacto.properties para distribuidor Colombia.
+)
+echo.
+
+REM ==========================================
 REM CREAR BUILD LIMPIO
 REM ==========================================
 echo Creando estructura build...

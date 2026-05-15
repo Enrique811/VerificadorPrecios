@@ -18,6 +18,7 @@ public final class ConfigManager {
     private static final String CONFIG_PATH = APPDATA_DIR + File.separator + "configuracion.properties";
     private static final String CONTACT_FILE_NAME = "contacto.properties";
     private static final String CONTACT_PATH = APPDATA_DIR + File.separator + CONTACT_FILE_NAME;
+    private static final String DEFAULT_CONTACT_CONTENT = "correo=\n";
     private static final String DEFAULT_CONFIG_CONTENT = "# Base configuration\n"
             + "ambiente=YQ\\=\\=\n"
             + "clave=\n"
@@ -119,16 +120,6 @@ public final class ConfigManager {
     }
 
     public static String getContactConfigPath() {
-        File appDataContactFile = new File(CONTACT_PATH);
-        if (appDataContactFile.isFile()) {
-            return appDataContactFile.getAbsolutePath();
-        }
-
-        File packagedContactFile = resolvePackagedContactFile();
-        if (packagedContactFile.isFile()) {
-            return packagedContactFile.getAbsolutePath();
-        }
-
         return CONTACT_PATH;
     }
 
@@ -177,15 +168,11 @@ public final class ConfigManager {
     }
 
     public static Properties loadContactProperties() throws IOException {
+        ensureContactFileExists();
         Properties properties = new Properties();
-        File contactFile = resolveExistingContactFile();
-        if (contactFile == null) {
-            return properties;
-        }
-
         InputStreamReader input = null;
         try {
-            input = new InputStreamReader(new FileInputStream(contactFile), StandardCharsets.UTF_8);
+            input = new InputStreamReader(new FileInputStream(CONTACT_PATH), StandardCharsets.UTF_8);
             properties.load(input);
             return properties;
         } finally {
@@ -226,22 +213,12 @@ public final class ConfigManager {
         Files.createDirectories(new File(APPDATA_DIR).toPath());
     }
 
-    private static File resolveExistingContactFile() {
-        File appDataContactFile = new File(CONTACT_PATH);
-        if (appDataContactFile.isFile()) {
-            return appDataContactFile;
+    private static void ensureContactFileExists() throws IOException {
+        ensureConfigDirectoryExists();
+        Path path = new File(CONTACT_PATH).toPath();
+        if (!Files.exists(path)) {
+            Files.writeString(path, DEFAULT_CONTACT_CONTENT, StandardCharsets.UTF_8);
         }
-
-        File packagedContactFile = resolvePackagedContactFile();
-        if (packagedContactFile.isFile()) {
-            return packagedContactFile;
-        }
-
-        return null;
-    }
-
-    private static File resolvePackagedContactFile() {
-        return new File(AppPaths.resolveAppBaseDirectory(), CONTACT_FILE_NAME);
     }
 
     private static String resolveAppDataDirectory() {

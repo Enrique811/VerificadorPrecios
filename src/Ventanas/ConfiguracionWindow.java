@@ -56,6 +56,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class ConfiguracionWindow extends JDialog {
 
+    private static final String CORREO_REPORTE_ERRORES = "config.soporte811@gmail.com";
     private static final Color COLOR_FONDO = new Color(243, 244, 246);
     private static final Color COLOR_TARJETA = Color.WHITE;
     private static final Color COLOR_BORDE = new Color(220, 226, 232);
@@ -294,13 +295,16 @@ public class ConfiguracionWindow extends JDialog {
         panel.setOpaque(false);
         panel.setLayout(new FlowLayout(FlowLayout.LEFT, 8, 0));
         panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JButton botonImportar = crearBoton("Importar .lic", new Color(239, 246, 255), COLOR_TITULO);
+        JButton botonImportar = crearBoton("Importar .lic", new Color(37, 99, 235), Color.WHITE);
         botonImportar.addActionListener(e -> importarLicenciaDesdeArchivo());
         JButton botonSolicitarLicencia = crearBoton("Solicitar licencia por correo",
-                new Color(239, 246, 255), COLOR_TITULO);
+                new Color(220, 252, 231), COLOR_VERDE);
         botonSolicitarLicencia.addActionListener(e -> solicitarLicenciaPorCorreo());
+        JButton botonReportarError = crearBoton("Reportar error", COLOR_ERROR, Color.WHITE);
+        botonReportarError.addActionListener(e -> reportarErrorPorCorreo());
         panel.add(botonImportar);
         panel.add(botonSolicitarLicencia);
+        panel.add(botonReportarError);
         return panel;
     }
 
@@ -806,17 +810,14 @@ public class ConfiguracionWindow extends JDialog {
         }
 
         String correoSolicitudLicencia = ConfigManager.getLicenseRequestEmail();
-        if (correoSolicitudLicencia.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "No se encontro el correo de licenciamiento en contacto.properties.\n"
-                    + "Ruta esperada: " + ConfigManager.getContactConfigPath(),
-                    "Correo",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
 
         String asunto = "Solicitud de activaci\u00f3n de sistema";
+        String notaDestinatario = correoSolicitudLicencia.isEmpty()
+                ? "No se encontro un correo de contacto para solicitar la licencia.\r\n"
+                + "Puedes agregar el destinatario manualmente.\r\n\r\n"
+                : "";
         String cuerpo = "Hola..\r\n\r\n"
+                + notaDestinatario
                 + "Solicito la activaci\u00f3n/licenciamiento del sistema para el siguiente equipo:\r\n\r\n"
                 + "UUID:\r\n"
                 + uuidEquipoLocal
@@ -836,25 +837,53 @@ public class ConfiguracionWindow extends JDialog {
 
         try {
             if (opcion == 0) {
-                abrirClienteCorreoPredeterminado(asunto, cuerpo);
+                abrirClienteCorreoPredeterminado(correoSolicitudLicencia, asunto, cuerpo);
             } else if (opcion == 1) {
-                abrirEnNavegador("https://mail.google.com/mail/?view=cm&fs=1&to="
-                        + codificarParaMailto(correoSolicitudLicencia)
-                        + "&su="
-                        + codificarParaMailto(asunto)
-                        + "&body="
-                        + codificarParaMailto(cuerpo));
+                abrirCorreoEnGmail(correoSolicitudLicencia, asunto, cuerpo);
             } else if (opcion == 2) {
-                abrirEnNavegador("https://outlook.office.com/mail/deeplink/compose?to="
-                        + codificarParaMailto(correoSolicitudLicencia)
-                        + "&subject="
-                        + codificarParaMailto(asunto)
-                        + "&body="
-                        + codificarParaMailto(cuerpo));
+                abrirCorreoEnOutlook(correoSolicitudLicencia, asunto, cuerpo);
             }
         } catch (IOException | IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this,
                     "No fue posible abrir la opci\u00f3n de correo seleccionada.",
+                    "Correo",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void reportarErrorPorCorreo() {
+        String asunto = "Reporte de error - VerificadorPrecios";
+        String fechaReporte = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+        String cuerpo = "Hola.\r\n\r\n"
+                + "Quiero reportar un error del sistema.\r\n\r\n"
+                + "Fecha y hora del reporte: " + fechaReporte + "\r\n"
+                + "Capturas de pantalla: (agrega capturas)\r\n"
+                + "Descripcion del error: \r\n"
+                + "Comentario adicional: \r\n\r\n"
+                + "Gracias.";
+
+        String[] opciones = {"Cliente predeterminado", "Gmail", "Outlook", "Cancelar"};
+        int opcion = JOptionPane.showOptionDialog(
+                this,
+                "Selecciona como deseas crear el correo de reporte.",
+                "Reportar error",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                opciones,
+                opciones[0]);
+
+        try {
+            if (opcion == 0) {
+                abrirClienteCorreoPredeterminado(CORREO_REPORTE_ERRORES, asunto, cuerpo);
+            } else if (opcion == 1) {
+                abrirCorreoEnGmail(CORREO_REPORTE_ERRORES, asunto, cuerpo);
+            } else if (opcion == 2) {
+                abrirCorreoEnOutlook(CORREO_REPORTE_ERRORES, asunto, cuerpo);
+            }
+        } catch (IOException | IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "No fue posible abrir la opcion de correo seleccionada.",
                     "Correo",
                     JOptionPane.ERROR_MESSAGE);
         }
@@ -920,20 +949,34 @@ public class ConfiguracionWindow extends JDialog {
         return uuid == null || uuid.trim().isEmpty() ? TEXTO_FECHA_NO_DISPONIBLE : uuid;
     }
 
-    private void abrirClienteCorreoPredeterminado(String asunto, String cuerpo) throws IOException {
+    private void abrirClienteCorreoPredeterminado(String destinatario, String asunto, String cuerpo) throws IOException {
         if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.MAIL)) {
             throw new IOException("Cliente de correo no disponible");
         }
 
-        String correoSolicitudLicencia = ConfigManager.getLicenseRequestEmail();
-        if (correoSolicitudLicencia.isEmpty()) {
-            throw new IOException("Correo de licenciamiento no configurado");
-        }
-
-        String mailto = "mailto:" + codificarParaMailto(correoSolicitudLicencia)
+        String destinatarioSeguro = destinatario == null ? "" : destinatario.trim();
+        String mailto = "mailto:" + codificarParaMailto(destinatarioSeguro)
                 + "?subject=" + codificarParaMailto(asunto)
                 + "&body=" + codificarParaMailto(cuerpo);
         Desktop.getDesktop().mail(URI.create(mailto));
+    }
+
+    private void abrirCorreoEnGmail(String destinatario, String asunto, String cuerpo) throws IOException {
+        abrirEnNavegador("https://mail.google.com/mail/?view=cm&fs=1&to="
+                + codificarParaMailto(destinatario)
+                + "&su="
+                + codificarParaMailto(asunto)
+                + "&body="
+                + codificarParaMailto(cuerpo));
+    }
+
+    private void abrirCorreoEnOutlook(String destinatario, String asunto, String cuerpo) throws IOException {
+        abrirEnNavegador("https://outlook.office.com/mail/deeplink/compose?to="
+                + codificarParaMailto(destinatario)
+                + "&subject="
+                + codificarParaMailto(asunto)
+                + "&body="
+                + codificarParaMailto(cuerpo));
     }
 
     private void abrirEnNavegador(String url) throws IOException {
