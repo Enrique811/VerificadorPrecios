@@ -20,6 +20,7 @@ public final class Main {
     }
 
     public static void iniciarAplicacion() {
+        ConfigManager.syncContactFileFromAppDirectory();
         ConfigManager config = new ConfigManager();
 
         if (!config.exists() || !config.configCompleta()) {

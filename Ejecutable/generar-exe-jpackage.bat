@@ -90,9 +90,11 @@ if errorlevel 1 if not defined TIPO_PAQUETE set "TIPO_PAQUETE=DESARROLLADOR"
 if /i "%TIPO_PAQUETE%"=="DESARROLLADOR" (
     > "contacto.properties" echo correo=config.soporte811@gmail.com
     echo Se configuro contacto.properties para desarrollador.
+    echo Correo configurado: config.soporte811@gmail.com
 ) else (
     > "contacto.properties" echo correo=
     echo Se configuro contacto.properties para distribuidor Colombia.
+    echo Correo configurado: [vacio]
 )
 echo.
 

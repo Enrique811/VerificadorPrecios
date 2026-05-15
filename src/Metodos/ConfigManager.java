@@ -9,6 +9,7 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Base64;
 import java.util.Properties;
 
@@ -178,6 +179,26 @@ public final class ConfigManager {
         } finally {
             if (input != null) {
                 input.close();
+            }
+        }
+    }
+
+    public static void syncContactFileFromAppDirectory() {
+        try {
+            ensureConfigDirectoryExists();
+            File sourceFile = new File(AppPaths.resolveAppBaseDirectory(), CONTACT_FILE_NAME);
+            Path targetPath = new File(CONTACT_PATH).toPath();
+
+            if (sourceFile.isFile()) {
+                Files.copy(sourceFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                return;
+            }
+
+            ensureContactFileExists();
+        } catch (IOException ex) {
+            try {
+                ensureContactFileExists();
+            } catch (IOException ignored) {
             }
         }
     }
