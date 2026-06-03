@@ -105,13 +105,14 @@ public class VentanaInicio extends JFrame {
     private JPanel tarjetaDetalle;
     private JPanel tarjetaPrecio;
     private final ArrayList<EtiquetaPendiente> colaEtiquetas = new ArrayList<EtiquetaPendiente>();
+    private boolean licenciaValida = false;
 
     public VentanaInicio() {
         initComponents();
         aplicarLogoApp();
         Configuracion.leerArchivoDePropiedades();
         informacion.setText(Configuracion.informacion);
-        actualizarEstadoBotonImprimir();
+        setFuncionalidadOperativaHabilitada(false);
         configurarAcciones();
         setLocationRelativeTo(null);
         setExtendedState(Frame.MAXIMIZED_BOTH);
@@ -552,6 +553,9 @@ public class VentanaInicio extends JFrame {
     }
 
     private void abrirBusqueda() {
+        if (!puedeUsarFuncionalidadOperativa()) {
+            return;
+        }
         BusquedaDialog dialogo = new BusquedaDialog(this, true);
         dialogo.setVisible(true);
     }
@@ -564,24 +568,25 @@ public class VentanaInicio extends JFrame {
     private void inicializarLicenciaYConexion() {
         if (Configuracion.clave == null || Configuracion.clave.trim().isEmpty()) {
             SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(this, "Debe capturar una licencia para continuar.");
+                aplicarModoLicenciaInvalida();
                 abrirConfiguracion();
-                Configuracion.leerArchivoDePropiedades();
-                informacion.setText(Configuracion.informacion);
-                if (Configuracion.clave != null && !Configuracion.clave.trim().isEmpty()) {
-                    Conexion.tieneLicenciavalida();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Debe capturar una licencia para continuar.");
-                    dispose();
-                    System.exit(0);
-                }
             });
             return;
         }
 
-        Conexion.tieneLicenciavalida();
+        if (Conexion.tieneLicenciavalida()) {
+            aplicarModoLicenciaValida();
+        } else {
+            aplicarModoLicenciaInvalida();
+            SwingUtilities.invokeLater(() -> abrirConfiguracion());
+        }
     }
 
     private void consultarArticulo() {
+        if (!puedeUsarFuncionalidadOperativa()) {
+            return;
+        }
         String codigo = codigoBarras.getText().trim();
         if (codigo.isEmpty()) {
             limpiarDatosArticulo();
@@ -612,8 +617,7 @@ public class VentanaInicio extends JFrame {
         Configuracion.leerArchivoDePropiedades();
         informacion.setText(Configuracion.informacion);
         colaEtiquetas.clear();
-        actualizarEstadoBotonImprimir();
-        mostrarEstadoNeutral("Configuración actualizada");
+        revalidarLicenciaDespuesDeConfiguracion();
         SwingUtilities.invokeLater(() -> codigoBarras.requestFocusInWindow());
     }
 
@@ -673,7 +677,53 @@ public class VentanaInicio extends JFrame {
         noEncontrado.setText(mensaje);
     }
 
+    private void aplicarModoLicenciaValida() {
+        licenciaValida = true;
+        setFuncionalidadOperativaHabilitada(true);
+        actualizarEstadoBotonImprimir();
+        mostrarEstadoNeutral("Listo para consultar productos");
+    }
+
+    private void aplicarModoLicenciaInvalida() {
+        licenciaValida = false;
+        colaEtiquetas.clear();
+        setFuncionalidadOperativaHabilitada(false);
+        mostrarEstadoError("Licencia invalida. Acceda a Configuracion para actualizarla.");
+    }
+
+    private void setFuncionalidadOperativaHabilitada(boolean enabled) {
+        botonBuscar.setEnabled(enabled);
+        codigoBarras.setEnabled(enabled);
+        informacion.setEnabled(enabled);
+        botonImprimir.setEnabled(enabled && obtenerColumnasConfiguradas() <= 1);
+    }
+
+    private boolean puedeUsarFuncionalidadOperativa() {
+        if (licenciaValida) {
+            return true;
+        }
+
+        mostrarEstadoError("Licencia invalida. Solo puede acceder a Configuracion.");
+        ToastNotification.showWarning(this, "Licencia invalida. Actualice la licencia en Configuracion.", 2200);
+        SwingUtilities.invokeLater(() -> botonConfiguracion.requestFocusInWindow());
+        return false;
+    }
+
+    private void revalidarLicenciaDespuesDeConfiguracion() {
+        if (Configuracion.clave != null && !Configuracion.clave.trim().isEmpty()
+                && Conexion.tieneLicenciavalida()) {
+            aplicarModoLicenciaValida();
+            mostrarEstadoNeutral("Configuración actualizada");
+            return;
+        }
+
+        aplicarModoLicenciaInvalida();
+    }
+
     private void imprimirEtiqueta() {
+        if (!puedeUsarFuncionalidadOperativa()) {
+            return;
+        }
         int columnas = obtenerColumnasConfiguradas();
         if (columnas > 1) {
             if (colaEtiquetas.size() >= columnas && esAmbientePruebas()) {
@@ -925,6 +975,11 @@ public class VentanaInicio extends JFrame {
 
     private void actualizarEstadoBotonImprimir() {
         if (botonImprimir == null) {
+            return;
+        }
+
+        if (!licenciaValida) {
+            botonImprimir.setEnabled(false);
             return;
         }
 

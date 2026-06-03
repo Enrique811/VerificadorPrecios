@@ -74,14 +74,12 @@ public class Conexion {
         imprimirDiagnosticoLicencia(result);
         if (!result.isLicenciaValida()) {
             mostrarErrorFatal(result.buildSummary());
-            System.exit(0);
             return false;
         }
 
         Date fechaHoyServidor = result.getFechaServidor();
         if (!isFechaDentroDelRango(fechaHoyServidor, result.getFechaInicio(), result.getFechaFin())) {
             mostrarErrorFatal(result.buildSummary());
-            System.exit(0);
             return false;
         }
 
