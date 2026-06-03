@@ -22,6 +22,18 @@ public class DatosReporte {
     private String PRECIO_VENTA;
     private String FECHA;
     private String INFORMACION;
+    private byte[] CODIGO_BARRAS_2;
+    private String CODIGO_BARRAS_TEXTO_2;
+    private String DESCRIPCION_2;
+    private String PRECIO_VENTA_2;
+    private String FECHA_2;
+    private String INFORMACION_2;
+    private byte[] CODIGO_BARRAS_3;
+    private String CODIGO_BARRAS_TEXTO_3;
+    private String DESCRIPCION_3;
+    private String PRECIO_VENTA_3;
+    private String FECHA_3;
+    private String INFORMACION_3;
 
     public String getINFORMACION() {
         return INFORMACION;
@@ -136,6 +148,114 @@ public class DatosReporte {
      */
     public void setPRECIO_VENTA(String PRECIO_VENTA) {
         this.PRECIO_VENTA = PRECIO_VENTA;
+    }
+
+    public Image getCODIGO_BARRAS_2() {
+        return leerImagen(CODIGO_BARRAS_2);
+    }
+
+    public void setCODIGO_BARRAS_2(byte[] CODIGO_BARRAS_2) {
+        this.CODIGO_BARRAS_2 = CODIGO_BARRAS_2;
+    }
+
+    public String getCODIGO_BARRAS_TEXTO_2() {
+        return CODIGO_BARRAS_TEXTO_2;
+    }
+
+    public void setCODIGO_BARRAS_TEXTO_2(String CODIGO_BARRAS_TEXTO_2) {
+        this.CODIGO_BARRAS_TEXTO_2 = CODIGO_BARRAS_TEXTO_2;
+    }
+
+    public String getDESCRIPCION_2() {
+        return DESCRIPCION_2;
+    }
+
+    public void setDESCRIPCION_2(String DESCRIPCION_2) {
+        this.DESCRIPCION_2 = DESCRIPCION_2;
+    }
+
+    public String getPRECIO_VENTA_2() {
+        return PRECIO_VENTA_2;
+    }
+
+    public void setPRECIO_VENTA_2(String PRECIO_VENTA_2) {
+        this.PRECIO_VENTA_2 = PRECIO_VENTA_2;
+    }
+
+    public String getFECHA_2() {
+        return FECHA_2;
+    }
+
+    public void setFECHA_2(String FECHA_2) {
+        this.FECHA_2 = FECHA_2;
+    }
+
+    public String getINFORMACION_2() {
+        return INFORMACION_2;
+    }
+
+    public void setINFORMACION_2(String INFORMACION_2) {
+        this.INFORMACION_2 = INFORMACION_2;
+    }
+
+    public Image getCODIGO_BARRAS_3() {
+        return leerImagen(CODIGO_BARRAS_3);
+    }
+
+    public void setCODIGO_BARRAS_3(byte[] CODIGO_BARRAS_3) {
+        this.CODIGO_BARRAS_3 = CODIGO_BARRAS_3;
+    }
+
+    public String getCODIGO_BARRAS_TEXTO_3() {
+        return CODIGO_BARRAS_TEXTO_3;
+    }
+
+    public void setCODIGO_BARRAS_TEXTO_3(String CODIGO_BARRAS_TEXTO_3) {
+        this.CODIGO_BARRAS_TEXTO_3 = CODIGO_BARRAS_TEXTO_3;
+    }
+
+    public String getDESCRIPCION_3() {
+        return DESCRIPCION_3;
+    }
+
+    public void setDESCRIPCION_3(String DESCRIPCION_3) {
+        this.DESCRIPCION_3 = DESCRIPCION_3;
+    }
+
+    public String getPRECIO_VENTA_3() {
+        return PRECIO_VENTA_3;
+    }
+
+    public void setPRECIO_VENTA_3(String PRECIO_VENTA_3) {
+        this.PRECIO_VENTA_3 = PRECIO_VENTA_3;
+    }
+
+    public String getFECHA_3() {
+        return FECHA_3;
+    }
+
+    public void setFECHA_3(String FECHA_3) {
+        this.FECHA_3 = FECHA_3;
+    }
+
+    public String getINFORMACION_3() {
+        return INFORMACION_3;
+    }
+
+    public void setINFORMACION_3(String INFORMACION_3) {
+        this.INFORMACION_3 = INFORMACION_3;
+    }
+
+    private Image leerImagen(byte[] codigoBarras) {
+        if (codigoBarras == null || codigoBarras.length == 0) {
+            return null;
+        }
+
+        try {
+            return ImageIO.read(new ByteArrayInputStream(codigoBarras));
+        } catch (IOException ex) {
+            return null;
+        }
     }
 
 

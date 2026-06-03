@@ -104,12 +104,14 @@ public class VentanaInicio extends JFrame {
     private JPanel tarjetaCaptura;
     private JPanel tarjetaDetalle;
     private JPanel tarjetaPrecio;
+    private final ArrayList<EtiquetaPendiente> colaEtiquetas = new ArrayList<EtiquetaPendiente>();
 
     public VentanaInicio() {
         initComponents();
         aplicarLogoApp();
         Configuracion.leerArchivoDePropiedades();
         informacion.setText(Configuracion.informacion);
+        actualizarEstadoBotonImprimir();
         configurarAcciones();
         setLocationRelativeTo(null);
         setExtendedState(Frame.MAXIMIZED_BOTH);
@@ -336,6 +338,7 @@ public class VentanaInicio extends JFrame {
                 + "Ctrl + F7: Buscar productos<br>"
                 + "Ctrl + F8: Imprimir etiqueta<br>"
                 + "Ctrl + F9: Configuración<br>"
+                + "Ctrl + F10: Cancelar lista pendiente<br>"
                 + "Esc: Salir o cerrar vista previa"
                 + "</div></html>");
         etiquetaAccesos.setFont(new Font("Segoe UI", Font.PLAIN, 14));
@@ -513,6 +516,7 @@ public class VentanaInicio extends JFrame {
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F7, KeyEvent.CTRL_DOWN_MASK), "buscarProductos");
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F8, KeyEvent.CTRL_DOWN_MASK), "imprimirEtiqueta");
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F9, KeyEvent.CTRL_DOWN_MASK), "abrirConfiguracion");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F10, KeyEvent.CTRL_DOWN_MASK), "cancelarListaImpresion");
 
         getRootPane().getActionMap().put("buscarProductos", new javax.swing.AbstractAction() {
             @Override
@@ -530,6 +534,12 @@ public class VentanaInicio extends JFrame {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 abrirConfiguracion();
+            }
+        });
+        getRootPane().getActionMap().put("cancelarListaImpresion", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                cancelarListaImpresionPendiente();
             }
         });
 
@@ -583,6 +593,7 @@ public class VentanaInicio extends JFrame {
         if (SQL.SQLArticulo.controlConsulta) {
             actualizarDesdeArticuloActual();
             mostrarEstadoExito("Producto encontrado");
+            capturarArticuloParaColumnas();
         } else {
             limpiarDatosArticulo();
             mostrarEstadoError("Producto no encontrado");
@@ -600,6 +611,8 @@ public class VentanaInicio extends JFrame {
     public void aplicarConfiguracionActual() {
         Configuracion.leerArchivoDePropiedades();
         informacion.setText(Configuracion.informacion);
+        colaEtiquetas.clear();
+        actualizarEstadoBotonImprimir();
         mostrarEstadoNeutral("Configuración actualizada");
         SwingUtilities.invokeLater(() -> codigoBarras.requestFocusInWindow());
     }
@@ -661,6 +674,20 @@ public class VentanaInicio extends JFrame {
     }
 
     private void imprimirEtiqueta() {
+        int columnas = obtenerColumnasConfiguradas();
+        if (columnas > 1) {
+            if (colaEtiquetas.size() >= columnas && esAmbientePruebas()) {
+                imprimirEtiquetasPendientes(columnas);
+            } else {
+                mostrarEstadoNeutral(colaEtiquetas.size() + " de " + columnas + " capturas");
+            }
+            return;
+        }
+
+        imprimirEtiquetaActual();
+    }
+
+    private void imprimirEtiquetaActual() {
         try {
             String codigoOriginal = SQL.SQLArticulo.codigo_barras == null
                     ? ""
@@ -732,6 +759,203 @@ public class VentanaInicio extends JFrame {
         }
     }
 
+    private void capturarArticuloParaColumnas() {
+        int columnas = obtenerColumnasConfiguradas();
+        if (columnas <= 1) {
+            return;
+        }
+
+        if (colaEtiquetas.size() >= columnas) {
+            mostrarEstadoNeutral(columnas + " de " + columnas + " capturas. Presione Imprimir.");
+            actualizarEstadoBotonImprimir();
+            return;
+        }
+
+        EtiquetaPendiente etiqueta = crearEtiquetaPendienteActual();
+        if (etiqueta == null) {
+            return;
+        }
+
+        colaEtiquetas.add(etiqueta);
+        int capturas = colaEtiquetas.size();
+        mostrarEstadoNeutral(capturas + " de " + columnas + " capturas");
+
+        if (capturas >= columnas) {
+            if (esAmbientePruebas()) {
+                actualizarEstadoBotonImprimir();
+                mostrarEstadoNeutral(columnas + " de " + columnas + " capturas. Presione Imprimir.");
+            } else if (esAmbienteProduccion()) {
+                imprimirEtiquetasPendientes(columnas);
+            }
+        } else {
+            actualizarEstadoBotonImprimir();
+        }
+    }
+
+    private EtiquetaPendiente crearEtiquetaPendienteActual() {
+        String codigoOriginal = SQL.SQLArticulo.codigo_barras == null
+                ? ""
+                : SQL.SQLArticulo.codigo_barras.trim();
+        if (codigoOriginal.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No hay codigo de barras para imprimir.");
+            return null;
+        }
+
+        BarcodeResult barcodeResult = BARCODE_FACADE.generateBarcodeResult(codigoOriginal);
+        byte[] barcodeBytes = barcodeResult.getImageBytes();
+        if (barcodeBytes.length == 0) {
+            ToastNotification.showError(this, "No se pudo generar el codigo de barras", 2200);
+            return null;
+        }
+
+        return new EtiquetaPendiente(
+                barcodeBytes,
+                codigoOriginal,
+                barcodeResult.isCode128(),
+                descripcion.getText(),
+                precio.getText(),
+                obtenerFechayHoraActualDelServidor(),
+                informacion.getText());
+    }
+
+    private void imprimirEtiquetasPendientes(int columnas) {
+        try {
+            String reporteSeleccionado = ReporteManager.resolverReporteConfigurado(Configuracion.reporte);
+            String rutaReporte = ReporteManager.obtenerRutaReporteSeleccionado(reporteSeleccionado);
+            if (rutaReporte == null) {
+                JOptionPane.showMessageDialog(this, "No se encontro un reporte .jasper valido en /reportes.");
+                return;
+            }
+
+            ArrayList<DatosReporte> parametros = new ArrayList<DatosReporte>();
+            parametros.add(construirDatosReporteColumnas(columnas));
+
+            JRDataSource dataSource = new JRBeanCollectionDataSource(parametros);
+            JasperPrint informe = JasperFillManager.fillReport(rutaReporte, null, dataSource);
+            ejecutarSalidaReporte(informe);
+            colaEtiquetas.clear();
+            actualizarEstadoBotonImprimir();
+            mostrarEstadoExito("Lista de impresion enviada");
+        } catch (JRException ex) {
+            ex.printStackTrace();
+            ToastNotification.showError(this, "No se pudo generar la etiqueta", 2200);
+        }
+    }
+
+    private DatosReporte construirDatosReporteColumnas(int columnas) {
+        EtiquetaPendiente primera = colaEtiquetas.get(0);
+        DatosReporte datos = new DatosReporte(
+                primera.codigoBarras,
+                primera.codigoBarrasTexto,
+                primera.isCode128,
+                primera.codigoBarrasTexto,
+                primera.descripcion,
+                primera.precioVenta,
+                primera.fecha,
+                primera.informacion);
+
+        if (columnas >= 2 && colaEtiquetas.size() >= 2) {
+            EtiquetaPendiente segunda = colaEtiquetas.get(1);
+            datos.setCODIGO_BARRAS_2(segunda.codigoBarras);
+            datos.setCODIGO_BARRAS_TEXTO_2(segunda.codigoBarrasTexto);
+            datos.setDESCRIPCION_2(segunda.descripcion);
+            datos.setPRECIO_VENTA_2(segunda.precioVenta);
+            datos.setFECHA_2(segunda.fecha);
+            datos.setINFORMACION_2(segunda.informacion);
+        }
+
+        if (columnas >= 3 && colaEtiquetas.size() >= 3) {
+            EtiquetaPendiente tercera = colaEtiquetas.get(2);
+            datos.setCODIGO_BARRAS_3(tercera.codigoBarras);
+            datos.setCODIGO_BARRAS_TEXTO_3(tercera.codigoBarrasTexto);
+            datos.setDESCRIPCION_3(tercera.descripcion);
+            datos.setPRECIO_VENTA_3(tercera.precioVenta);
+            datos.setFECHA_3(tercera.fecha);
+            datos.setINFORMACION_3(tercera.informacion);
+        }
+
+        return datos;
+    }
+
+    private void ejecutarSalidaReporte(JasperPrint informe) throws JRException {
+        if (Configuracion.ambiente.equalsIgnoreCase("a")) {
+            mostrarVistaPreviaJasper(informe);
+        } else if (Configuracion.ambiente.equalsIgnoreCase("b")) {
+            PrintService[] services = PrintServiceLookup.lookupPrintServices(null, null);
+            PrintService impresoraSeleccionada = null;
+
+            for (PrintService service : services) {
+                if (service.getName().equalsIgnoreCase(Configuracion.impresora)) {
+                    impresoraSeleccionada = service;
+                    break;
+                }
+            }
+
+            if (impresoraSeleccionada != null) {
+                JRPrintServiceExporter exportador = new JRPrintServiceExporter();
+                exportador.setExporterInput(new SimpleExporterInput(informe));
+
+                SimplePrintServiceExporterConfiguration config = new SimplePrintServiceExporterConfiguration();
+                config.setPrintService(impresoraSeleccionada);
+                config.setPrintRequestAttributeSet(new javax.print.attribute.HashPrintRequestAttributeSet());
+                config.setDisplayPageDialog(false);
+                config.setDisplayPrintDialog(false);
+
+                exportador.setConfiguration(config);
+                exportador.exportReport();
+            } else {
+                JOptionPane.showMessageDialog(this, "No se encontro la impresora: " + Configuracion.impresora);
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Configurar ambiente: " + Configuracion.ambiente);
+        }
+    }
+
+    private void cancelarListaImpresionPendiente() {
+        if (obtenerColumnasConfiguradas() <= 1 || colaEtiquetas.isEmpty()) {
+            return;
+        }
+
+        colaEtiquetas.clear();
+        actualizarEstadoBotonImprimir();
+        mostrarEstadoNeutral("Lista de impresion pendiente cancelada");
+        ToastNotification.showSuccess(this, "Lista de impresion pendiente cancelada", 2000);
+        SwingUtilities.invokeLater(() -> codigoBarras.requestFocusInWindow());
+    }
+
+    private void actualizarEstadoBotonImprimir() {
+        if (botonImprimir == null) {
+            return;
+        }
+
+        int columnas = obtenerColumnasConfiguradas();
+        if (columnas <= 1) {
+            botonImprimir.setEnabled(true);
+            return;
+        }
+
+        botonImprimir.setEnabled(esAmbientePruebas() && colaEtiquetas.size() >= columnas);
+    }
+
+    private boolean esAmbientePruebas() {
+        return Configuracion.ambiente != null && Configuracion.ambiente.equalsIgnoreCase("a");
+    }
+
+    private boolean esAmbienteProduccion() {
+        return Configuracion.ambiente != null && Configuracion.ambiente.equalsIgnoreCase("b");
+    }
+
+    private int obtenerColumnasConfiguradas() {
+        String columnas = Configuracion.columnas == null ? "" : Configuracion.columnas.trim();
+        if ("2".equals(columnas)) {
+            return 2;
+        }
+        if ("3".equals(columnas)) {
+            return 3;
+        }
+        return 1;
+    }
+
     private void mostrarVistaPreviaJasper(JasperPrint informe) {
         JasperViewer viewer = new JasperViewer(informe, false);
         viewer.setTitle("Vista previa de etiqueta");
@@ -747,6 +971,28 @@ public class VentanaInicio extends JFrame {
         if (JOptionPane.showConfirmDialog(this,
                 "¿Desea salir del sistema?", "Sistema", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             System.exit(0);
+        }
+    }
+
+    private static final class EtiquetaPendiente {
+
+        private final byte[] codigoBarras;
+        private final String codigoBarrasTexto;
+        private final boolean isCode128;
+        private final String descripcion;
+        private final String precioVenta;
+        private final String fecha;
+        private final String informacion;
+
+        private EtiquetaPendiente(byte[] codigoBarras, String codigoBarrasTexto, boolean isCode128,
+                String descripcion, String precioVenta, String fecha, String informacion) {
+            this.codigoBarras = codigoBarras;
+            this.codigoBarrasTexto = codigoBarrasTexto;
+            this.isCode128 = isCode128;
+            this.descripcion = descripcion;
+            this.precioVenta = precioVenta;
+            this.fecha = fecha;
+            this.informacion = informacion;
         }
     }
 
