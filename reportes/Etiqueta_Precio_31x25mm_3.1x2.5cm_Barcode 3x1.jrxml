@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Etiqueta_Precio_70x40mm_7.0x4.0cm_Barcode" printOrder="Horizontal" pageWidth="608" pageHeight="113" columnWidth="604" leftMargin="2" rightMargin="2" topMargin="2" bottomMargin="2" uuid="85d9742b-6983-4470-97c5-f7ca610c5771">
+	<property name="ireport.zoom" value="2.3"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<field name="IDENTIFICACION" class="java.lang.String"/>
+	<field name="CODIGO_BARRAS" class="java.awt.Image"/>
+	<field name="CODIGO_BARRAS_TEXTO" class="java.lang.String"/>
+	<field name="PRECIO_VENTA" class="java.lang.String"/>
+	<field name="DESCRIPCION" class="java.lang.String"/>
+	<field name="FECHA" class="java.lang.String"/>
+	<field name="INFORMACION" class="java.lang.String"/>
+
+<field name="DESCRIPCION_2" class="java.lang.String"/>
+<field name="PRECIO_VENTA_2" class="java.lang.String"/>
+<field name="CODIGO_BARRAS_2" class="java.awt.Image"/>
+<field name="CODIGO_BARRAS_TEXTO_2" class="java.lang.String"/>
+<field name="FECHA_2" class="java.lang.String"/>
+<field name="INFORMACION_2" class="java.lang.String"/>
+
+<field name="DESCRIPCION_3" class="java.lang.String"/>
+<field name="PRECIO_VENTA_3" class="java.lang.String"/>
+<field name="CODIGO_BARRAS_3" class="java.awt.Image"/>
+<field name="CODIGO_BARRAS_TEXTO_3" class="java.lang.String"/>
+<field name="FECHA_3" class="java.lang.String"/>
+<field name="INFORMACION_3" class="java.lang.String"/>
+	<title>
+		<band height="79" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="10" width="194" height="26" uuid="e4406ca8-c321-415b-9fe0-bfd08c5dbc46"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="11" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{DESCRIPCION}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="87" y="36" width="100" height="15" uuid="138de353-dd54-4b26-b93a-e51fcae6adbf"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial Black" size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{PRECIO_VENTA}]]></textFieldExpression>
+			</textField>
+			<image scaleImage="FillFrame" hAlign="Center" vAlign="Middle">
+				<reportElement x="5" y="51" width="184" height="17" uuid="98414330-63a2-459f-a00a-1e649ce4ee0e"/>
+				<imageExpression><![CDATA[$F{CODIGO_BARRAS}]]></imageExpression>
+			</image>
+			<textField>
+				<reportElement x="5" y="68" width="184" height="10" uuid="da9fe290-d4dc-46e4-afb6-6d549e065d47"/>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font fontName="Arial" size="6" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{CODIGO_BARRAS_TEXTO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="5" y="36" width="85" height="15" uuid="b09f02e3-2620-4000-97aa-d0e3b94ef2e1"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial Black" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{FECHA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="5" y="0" width="184" height="10" uuid="3df85b88-55aa-4e39-9b69-b4c0285934ee"/>
+				<textElement textAlignment="Center">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{INFORMACION}]]></textFieldExpression>
+			</textField>
+
+<textField>
+        <reportElement x="205" y="10" width="194" height="26" uuid="492d6f13-b3e3-457b-82ed-29a4f50f9de9"/>
+        <textElement textAlignment="Center" verticalAlignment="Middle">
+            <font fontName="Arial" size="11" isBold="true"/>
+        </textElement>
+        <textFieldExpression><![CDATA[$F{DESCRIPCION_2}]]></textFieldExpression>
+    </textField>
+
+    <textField>
+        <reportElement x="292" y="36" width="100" height="15" uuid="1000bd13-e6e4-4b00-9bc4-1b976d188b83"/>
+        <textElement textAlignment="Center" verticalAlignment="Middle">
+            <font fontName="Arial Black" size="10" isBold="true"/>
+        </textElement>
+        <textFieldExpression><![CDATA[$F{PRECIO_VENTA_2}]]></textFieldExpression>
+    </textField>
+
+    <image scaleImage="FillFrame" hAlign="Center" vAlign="Middle">
+        <reportElement x="210" y="51" width="184" height="17" uuid="d4908328-4f04-4757-9a6c-b4316cf18de5"/>
+        <imageExpression><![CDATA[$F{CODIGO_BARRAS_2}]]></imageExpression>
+    </image>
+
+    <textField>
+        <reportElement x="210" y="68" width="184" height="10" uuid="9cbad173-64cc-4c06-893d-37fc2386612a"/>
+        <textElement textAlignment="Center" verticalAlignment="Bottom">
+            <font fontName="Arial" size="6" isBold="true"/>
+        </textElement>
+        <textFieldExpression><![CDATA[$F{CODIGO_BARRAS_TEXTO_2}]]></textFieldExpression>
+    </textField>
+
+    <textField>
+        <reportElement x="210" y="36" width="85" height="15" uuid="02f4212f-df81-4646-8a45-85c489f3e28e"/>
+        <textElement textAlignment="Center" verticalAlignment="Middle">
+            <font fontName="Arial Black" size="7"/>
+        </textElement>
+        <textFieldExpression><![CDATA[$F{FECHA_2}]]></textFieldExpression>
+    </textField>
+
+    <textField>
+        <reportElement x="210" y="0" width="184" height="10" uuid="ac5d13d8-2344-4277-924a-3bbba6d564b0"/>
+        <textElement textAlignment="Center">
+            <font size="6" isBold="true"/>
+        </textElement>
+        <textFieldExpression><![CDATA[$F{INFORMACION_2}]]></textFieldExpression>
+    </textField>
+
+    <!-- ETIQUETA 3 -->
+
+    <textField>
+        <reportElement x="410" y="10" width="194" height="26" uuid="7bea125a-39cb-4d80-83b3-2e36bbb4a6ae"/>
+        <textElement textAlignment="Center" verticalAlignment="Middle">
+            <font fontName="Arial" size="11" isBold="true"/>
+        </textElement>
+        <textFieldExpression><![CDATA[$F{DESCRIPCION_3}]]></textFieldExpression>
+    </textField>
+
+    <textField>
+        <reportElement x="497" y="36" width="100" height="15" uuid="6594ce95-bc9a-425c-b634-5d6159c758fe"/>
+        <textElement textAlignment="Center" verticalAlignment="Middle">
+            <font fontName="Arial Black" size="10" isBold="true"/>
+        </textElement>
+        <textFieldExpression><![CDATA[$F{PRECIO_VENTA_3}]]></textFieldExpression>
+    </textField>
+
+    <image scaleImage="FillFrame" hAlign="Center" vAlign="Middle">
+        <reportElement x="415" y="51" width="184" height="17" uuid="247c3be4-4666-438e-a710-87dd61ce02dc"/>
+        <imageExpression><![CDATA[$F{CODIGO_BARRAS_3}]]></imageExpression>
+    </image>
+
+    <textField>
+        <reportElement x="415" y="68" width="184" height="10" uuid="2805546e-5171-4cdb-aa04-970a74e3f333"/>
+        <textElement textAlignment="Center" verticalAlignment="Bottom">
+            <font fontName="Arial" size="6" isBold="true"/>
+        </textElement>
+        <textFieldExpression><![CDATA[$F{CODIGO_BARRAS_TEXTO_3}]]></textFieldExpression>
+    </textField>
+
+    <textField>
+        <reportElement x="415" y="36" width="85" height="15" uuid="d131f5a6-dce9-4923-8c9a-bb22c1993465"/>
+        <textElement textAlignment="Center" verticalAlignment="Middle">
+            <font fontName="Arial Black" size="7"/>
+        </textElement>
+        <textFieldExpression><![CDATA[$F{FECHA_3}]]></textFieldExpression>
+    </textField>
+
+    <textField>
+        <reportElement x="415" y="0" width="184" height="10" uuid="d6e17097-614f-4cde-b6f9-0ede9224fa4e"/>
+        <textElement textAlignment="Center">
+            <font size="6" isBold="true"/>
+        </textElement>
+        <textFieldExpression><![CDATA[$F{INFORMACION_3}]]></textFieldExpression>
+    </textField>
+		</band>
+	</title>
+</jasperReport>

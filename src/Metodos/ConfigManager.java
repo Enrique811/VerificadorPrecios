@@ -23,6 +23,7 @@ public final class ConfigManager {
     private static final String DEFAULT_CONFIG_CONTENT = "# Base configuration\n"
             + "ambiente=YQ\\=\\=\n"
             + "clave=\n"
+            + "columnas=MQ\\=\\=\n"
             + "formatoPrecio=TVg\\=\\=\n"
             + "impresora=\n"
             + "informacion=\n"
@@ -100,7 +101,7 @@ public final class ConfigManager {
     }
 
     public static void saveConfiguration(String ambiente, String clave, String impresora,
-            String formatoPrecio, String reporte) throws IOException {
+            String formatoPrecio, String reporte, String columnas) throws IOException {
         ensureConfigFileExists();
         Properties current = loadProperties();
         current.setProperty("ambiente", ambiente);
@@ -108,6 +109,7 @@ public final class ConfigManager {
         current.setProperty("impresora", impresora);
         current.setProperty("formatoPrecio", formatoPrecio);
         current.setProperty("reporte", reporte);
+        current.setProperty("columnas", normalizarColumnas(columnas));
 
         if (!current.containsKey("rutaEmpresa")) {
             current.setProperty("rutaEmpresa", "");
@@ -339,5 +341,10 @@ public final class ConfigManager {
 
     private static boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private static String normalizarColumnas(String columnas) {
+        String valor = columnas == null ? "" : columnas.trim();
+        return "1".equals(valor) || "2".equals(valor) || "3".equals(valor) ? valor : "1";
     }
 }

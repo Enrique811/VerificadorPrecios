@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Etiqueta_Precio_70x40mm_7.0x4.0cm_Barcode" printOrder="Horizontal" pageWidth="88" pageHeight="72" columnWidth="84" leftMargin="1" rightMargin="1" topMargin="1" bottomMargin="1" uuid="f26e1bf5-8e11-4432-bbca-cca89aabb793">
+	<property name="ireport.zoom" value="5.423279689300004"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<field name="IDENTIFICACION" class="java.lang.String"/>
+	<field name="CODIGO_BARRAS" class="java.awt.Image"/>
+	<field name="CODIGO_BARRAS_TEXTO" class="java.lang.String"/>
+	<field name="PRECIO_VENTA" class="java.lang.String"/>
+	<field name="DESCRIPCION" class="java.lang.String"/>
+	<field name="FECHA" class="java.lang.String"/>
+	<field name="INFORMACION" class="java.lang.String"/>
+	<title>
+		<band height="50" splitType="Stretch">
+			<textField>
+				<reportElement x="1" y="6" width="82" height="17" uuid="51ad8f77-99ca-45ad-b7a2-35a872caeaec"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="6" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{DESCRIPCION}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="39" y="23" width="44" height="10" uuid="e35525cc-631a-460b-9104-b0d59a3b3dd3"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial Black" size="5" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{PRECIO_VENTA}]]></textFieldExpression>
+			</textField>
+			<image scaleImage="FillFrame" hAlign="Center" vAlign="Middle">
+				<reportElement x="2" y="33" width="81" height="10" uuid="b1ce76a1-87b6-4688-a226-9980b5d3cb11"/>
+				<imageExpression><![CDATA[$F{CODIGO_BARRAS}]]></imageExpression>
+			</image>
+			<textField>
+				<reportElement x="2" y="43" width="81" height="6" uuid="a769d06f-03de-493f-82ac-ddce985d984b"/>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font fontName="Arial" size="3" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{CODIGO_BARRAS_TEXTO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="1" y="23" width="38" height="10" uuid="4915607e-5289-4660-86d0-4323f94ed72c"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial Black" size="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{FECHA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="1" y="1" width="82" height="5" uuid="ac3409aa-e2ee-4413-a0ee-1e06d41f5f62"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{INFORMACION}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+</jasperReport>

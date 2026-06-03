@@ -73,6 +73,7 @@ public class ConfiguracionWindow extends JDialog {
 
     private JComboBox<ItemAmbiente> comboAmbiente;
     private JComboBox<ItemFormatoPrecio> comboFormatoPrecio;
+    private JComboBox<String> comboColumnas;
     private JTextArea campoClave;
     private JLabel etiquetaUuidLicencia;
     private JLabel etiquetaFechaInicio;
@@ -197,6 +198,11 @@ public class ConfiguracionWindow extends JDialog {
         });
         configurarComboBox(comboFormatoPrecio);
         tarjeta.add(crearCampoFormulario("Formato de Precio", comboFormatoPrecio));
+        tarjeta.add(javax.swing.Box.createVerticalStrut(10));
+
+        comboColumnas = new JComboBox<String>(new String[]{"1", "2", "3"});
+        configurarComboBox(comboColumnas);
+        tarjeta.add(crearCampoFormulario("Columnas de Etiquetas", comboColumnas));
         tarjeta.add(javax.swing.Box.createVerticalStrut(10));
 
         campoClave = crearTextArea();
@@ -357,6 +363,7 @@ public class ConfiguracionWindow extends JDialog {
             Properties properties = ConfigManager.loadProperties();
             seleccionarAmbiente(properties.getProperty("ambiente", ""));
             seleccionarFormatoPrecio(properties.getProperty("formatoPrecio", ""));
+            seleccionarColumnas(properties.getProperty("columnas", "1"));
             cargarLicenciaGuardada(properties.getProperty("clave", ""));
             actualizarFechasLicencia();
             cargarImpresoras(properties.getProperty("impresora", ""));
@@ -442,6 +449,11 @@ public class ConfiguracionWindow extends JDialog {
         comboFormatoPrecio.setSelectedIndex(0);
     }
 
+    private void seleccionarColumnas(String columnas) {
+        String valor = normalizarColumnas(columnas);
+        comboColumnas.setSelectedItem(valor);
+    }
+
     private void guardarConfiguracion() {
         String clave = normalizarLicenciaJson(campoClave.getText());
         String licenciaGuardada = normalizarLicenciaJson(ConfigManager.getStoredLicenseKey());
@@ -449,6 +461,7 @@ public class ConfiguracionWindow extends JDialog {
                 = resolverEventoActivacion(licenciaGuardada, clave);
         limpiarValidacionComboBox(comboAmbiente);
         limpiarValidacionComboBox(comboFormatoPrecio);
+        limpiarValidacionComboBox(comboColumnas);
         limpiarValidacionComboBox(comboImpresora);
         limpiarValidacionComboBox(comboReporte);
 
@@ -457,6 +470,10 @@ public class ConfiguracionWindow extends JDialog {
         }
 
         if (!validarComboObligatorio(comboFormatoPrecio, "Debe seleccionar un Formato de Precio.")) {
+            return;
+        }
+
+        if (!validarComboObligatorio(comboColumnas, "Debe seleccionar las Columnas de Etiquetas.")) {
             return;
         }
 
@@ -488,6 +505,9 @@ public class ConfiguracionWindow extends JDialog {
             campoClave.setText(clave);
             ItemAmbiente ambienteSeleccionado = (ItemAmbiente) comboAmbiente.getSelectedItem();
             ItemFormatoPrecio formatoSeleccionado = (ItemFormatoPrecio) comboFormatoPrecio.getSelectedItem();
+            String columnas = comboColumnas.getSelectedItem() != null
+                    ? comboColumnas.getSelectedItem().toString()
+                    : "1";
             String impresora = comboImpresora.isEnabled() && comboImpresora.getSelectedItem() != null
                     ? comboImpresora.getSelectedItem().toString()
                     : "";
@@ -509,7 +529,8 @@ public class ConfiguracionWindow extends JDialog {
                     clave,
                     impresora,
                     formatoSeleccionado != null ? formatoSeleccionado.codigo : "",
-                    reporte);
+                    reporte,
+                    columnas);
 
             Configuracion.leerArchivoDePropiedades();
             if (ownerFrame != null) {
@@ -649,6 +670,11 @@ public class ConfiguracionWindow extends JDialog {
         }
 
         return valor.trim();
+    }
+
+    private String normalizarColumnas(String valor) {
+        String columnas = valor == null ? "" : valor.trim();
+        return "1".equals(columnas) || "2".equals(columnas) || "3".equals(columnas) ? columnas : "1";
     }
 
     private void importarLicenciaDesdeArchivo() {

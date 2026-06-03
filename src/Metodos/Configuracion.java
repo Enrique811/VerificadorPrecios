@@ -42,6 +42,7 @@ public class Configuracion {
     public static String ambiente;
     public static String formatoPrecio;
     public static String reporte;
+    public static String columnas;
      
     private static String url = ConfigManager.getConfigPath();
     public static String key = "K7m2X9qLp4";
@@ -60,6 +61,7 @@ public class Configuracion {
             ambiente = propiedades.getProperty("ambiente");
             formatoPrecio = propiedades.getProperty("formatoPrecio", "CO");
             reporte = ReporteManager.resolverReporteConfigurado(propiedades.getProperty("reporte", ""));
+            columnas = normalizarColumnas(propiedades.getProperty("columnas", "1"));
 
             System.out.println("IP EMPRESA: " + ipEmpresa);
             System.out.println("RUTA EMPRESA: " + rutaEmpresa);
@@ -71,6 +73,7 @@ public class Configuracion {
             System.out.println("AMBIENTE: " + ambiente);//a=QA, b=PRODUCTIVO
             System.out.println("FORMATO PRECIO: " + formatoPrecio);
             System.out.println("REPORTE: " + reporte);
+            System.out.println("COLUMNAS: " + columnas);
 
         } catch (FileNotFoundException e) {
             JOptionPane.showMessageDialog(null, "No se ha encontrado el archivo de configuración" + e, "FileNotFoundException", JOptionPane.ERROR_MESSAGE);
@@ -87,6 +90,13 @@ public class Configuracion {
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Error al guardar en el archivo: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private static String normalizarColumnas(String valor) {
+        String columnasConfiguradas = valor == null ? "" : valor.trim();
+        return "1".equals(columnasConfiguradas)
+                || "2".equals(columnasConfiguradas)
+                || "3".equals(columnasConfiguradas) ? columnasConfiguradas : "1";
     }
 
 
